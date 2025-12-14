@@ -195,9 +195,9 @@ canvas {
 
   <div id="start-screen">
     <div class="overlay-card">
-      <p class="overlay-caption">ウェイティングルーム</p>
+      <p class="overlay-caption">DaB GAME</p>
       <div class="overlay-moon">☾</div>
-      <h1 class="overlay-message" id="overlay-message">RUN & JUMP</h1>
+      <h1 class="overlay-message" id="overlay-message">PYON PYON SATOSHI</h1>
 
       <div class="overlay-score-panel" id="overlay-score-panel">
         <span class="overlay-star">★</span>
@@ -636,12 +636,12 @@ let frameCount = 0;
 
 function setOverlayState(state, scoreValue = 0) {
   if (state === 'start') {
-    overlayMessageEl.innerText = 'RUN & JUMP';
+    overlayMessageEl.innerText = 'PYON PYON SATOSHI';
     overlaySubtextEl.innerText = '画面をタップすると始まります';
     overlayScorePanel.classList.remove('visible');
     startBtn.innerText = 'PLAY GAME';
   } else if (state === 'gameover') {
-    overlayMessageEl.innerText = 'おっと...';
+    overlayMessageEl.innerText = 'あらら...';
     overlaySubtextEl.innerText = 'もう一度チャレンジする';
     overlayScoreValue.innerText = scoreValue;
     overlayScorePanel.classList.add('visible');
