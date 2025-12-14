@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Modern Platformer Runner</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap');
@@ -32,7 +32,7 @@
             height: 100%;
         }
 
-        /* UI Overlay - 最初のデザインを維持 */
+        /* UI Overlay */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -46,23 +46,33 @@
         }
 
         .hud {
-            padding: 24px 32px;
+            /* ノッチ対策: セーフエリアを考慮して余白を追加 */
+            padding-top: max(20px, env(safe-area-inset-top) + 20px);
+            padding-left: max(20px, env(safe-area-inset-left) + 20px);
+            padding-right: max(20px, env(safe-area-inset-right) + 20px);
+            padding-bottom: 20px;
+            
+            width: 100%;
+            box-sizing: border-box;
             color: #333;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 20px;
             display: flex;
             justify-content: space-between;
-            z-index: 5;
+            z-index: 100;
         }
 
         .hud span {
-            background: rgba(255, 255, 255, 0.6);
-            padding: 8px 16px;
-            border-radius: 20px;
-            backdrop-filter: blur(4px);
+            background: rgba(255, 255, 255, 0.9); /* 背景をより白く濃く */
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* 影をつけて浮き出させる */
+            border: 2px solid #fff; /* 白い縁取り */
+            color: #444;
         }
 
-        /* Start Screen - 最初のデザインを維持 */
+        /* Start Screen */
         #start-screen {
             position: absolute;
             top: 0;
@@ -167,7 +177,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Colors - 最初のデザインに戻しました
+// Colors
 const COLORS = {
     sky: '#FFD9E6',       // 薄めのピンク
     ground: '#D4B856',    // 落ち着いた黄色
@@ -182,7 +192,7 @@ const COLORS = {
 let TILE_SIZE = 40;
 let GRAVITY = 0.6;
 let JUMP_FORCE = -12;
-let MOVE_SPEED = 6; // オートラン用の速度
+let MOVE_SPEED = 6;
 
 // Game State
 let gameState = {
@@ -205,14 +215,14 @@ function resize() {
     TILE_SIZE = Math.ceil(canvas.height / 12);
     
     GRAVITY = TILE_SIZE * 0.03;
-    JUMP_FORCE = -(TILE_SIZE * 0.55); // 少しジャンプ力アップ
+    JUMP_FORCE = -(TILE_SIZE * 0.55);
     MOVE_SPEED = TILE_SIZE * 0.15;
 }
 window.addEventListener('resize', resize);
 resize();
 
 /**
- * Drawing Functions - 最初のデザインに戻しました
+ * Drawing Functions
  */
 
 function drawPlayer(ctx, x, y, frame) {
@@ -233,50 +243,45 @@ function drawPlayer(ctx, x, y, frame) {
         pants: '#2C3E50'
     };
 
-    // オートランなので常に走っているアニメーション
-    // フレームごとに足を動かす
     const runFrame = Math.floor(frame / 5) % 4; 
     let legOffsetL = 0;
     let legOffsetR = 0;
 
     if (!player.grounded) {
-        // ジャンプ中
+        // Jump
         legOffsetL = -1;
         legOffsetR = -2;
     } else {
-        // 走り
+        // Run
         if (runFrame === 0) { legOffsetL = 0; legOffsetR = 0; }
         else if (runFrame === 1) { legOffsetL = -1; legOffsetR = 1; }
         else if (runFrame === 2) { legOffsetL = 0; legOffsetR = 0; }
         else { legOffsetL = 1; legOffsetR = -1; }
     }
 
-    // --- 髪の毛（最初のデザイン） ---
+    // Hair
     ctx.fillStyle = c.hair;
     ctx.fillRect(ps*2, ps*1, ps*8, ps*10); 
     ctx.fillRect(ps*1, ps*3, ps*1, ps*8); 
     
-    // 足 (Animated)
+    // Legs
     ctx.fillStyle = c.pants;
-    // Left Leg
     ctx.fillRect(ps*3, ps*11 + legOffsetL * ps, ps*2, ps*4); 
-    // Right Leg
     ctx.fillRect(ps*7, ps*11 + legOffsetR * ps, ps*2, ps*4);
 
-    // Body (Vest)
+    // Body
     ctx.fillStyle = c.vest;
     ctx.fillRect(ps*3, ps*5, ps*6, ps*6);
 
-    // Arms/Shirt
+    // Arms
     ctx.fillStyle = c.shirt;
-    ctx.fillRect(ps*5, ps*5, ps*2, ps*2); // V-neck
-    // Arms swinging
+    ctx.fillRect(ps*5, ps*5, ps*2, ps*2); 
     if(runFrame % 2 === 0 || !player.grounded) {
-        ctx.fillRect(ps*2, ps*5, ps*1, ps*4); // L Arm
-        ctx.fillRect(ps*9, ps*5, ps*1, ps*4); // R Arm
+        ctx.fillRect(ps*2, ps*5, ps*1, ps*4); 
+        ctx.fillRect(ps*9, ps*5, ps*1, ps*4); 
     } else {
-        ctx.fillRect(ps*2, ps*4, ps*1, ps*4); // L Arm raised
-        ctx.fillRect(ps*9, ps*6, ps*1, ps*4); // R Arm lowered
+        ctx.fillRect(ps*2, ps*4, ps*1, ps*4); 
+        ctx.fillRect(ps*9, ps*6, ps*1, ps*4); 
     }
 
     // Hands
@@ -292,20 +297,20 @@ function drawPlayer(ctx, x, y, frame) {
     ctx.fillRect(ps*3, 0, ps*6, ps*1);
     ctx.fillRect(ps*3, ps*1, ps*1, ps*3);
     ctx.fillRect(ps*8, ps*1, ps*1, ps*3);
-    ctx.fillRect(ps*3, ps*1, ps*2, ps*1); // Bangs L
-    ctx.fillRect(ps*7, ps*1, ps*2, ps*1); // Bangs R
+    ctx.fillRect(ps*3, ps*1, ps*2, ps*1); 
+    ctx.fillRect(ps*7, ps*1, ps*2, ps*1); 
 
     // Face details
     ctx.fillStyle = '#000';
-    ctx.fillRect(ps*4, ps*2, ps*1, ps*0.5); // Eye L
-    ctx.fillRect(ps*7, ps*2, ps*1, ps*0.5); // Eye R
-    ctx.fillRect(ps*5, ps*3.5, ps*2, ps*0.5); // Mouth
+    ctx.fillRect(ps*4, ps*2, ps*1, ps*0.5); 
+    ctx.fillRect(ps*7, ps*2, ps*1, ps*0.5); 
+    ctx.fillRect(ps*5, ps*3.5, ps*2, ps*0.5); 
 
     ctx.restore();
 }
 
 function drawBlock(ctx, x, y, type) {
-    if (type === 1) { // Ground (Yellow - 最初のデザイン)
+    if (type === 1) { // Ground
         ctx.fillStyle = COLORS.ground;
         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
         ctx.fillStyle = COLORS.groundDark;
@@ -317,7 +322,7 @@ function drawBlock(ctx, x, y, type) {
         ctx.font = `bold ${TILE_SIZE * 0.6}px sans-serif`;
         ctx.textAlign = 'center';
         ctx.fillText('?', x + TILE_SIZE/2, y + TILE_SIZE * 0.7);
-    } else if (type === 3) { // Pipe (Pink - 最初のデザイン)
+    } else if (type === 3) { // Pipe
         ctx.fillStyle = COLORS.pipe;
         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
         ctx.fillStyle = COLORS.pipeDark;
@@ -326,21 +331,18 @@ function drawBlock(ctx, x, y, type) {
 }
 
 function drawEnemy(ctx, x, y, frame) {
-    // 最初のキノコデザイン
     const w = TILE_SIZE;
     const h = TILE_SIZE;
     
     ctx.fillStyle = '#8B4513';
     
-    // Simple Mushroom Shape
     ctx.beginPath();
     ctx.arc(x + w/2, y + h/2, w/2, 0, Math.PI, true);
     ctx.fill();
     
-    ctx.fillStyle = '#CD853F'; // Stem
+    ctx.fillStyle = '#CD853F'; 
     ctx.fillRect(x + w*0.3, y + h/2, w*0.4, h/2);
 
-    // Eyes
     ctx.fillStyle = '#FFF';
     ctx.beginPath();
     ctx.arc(x + w*0.4, y + h*0.6, w*0.1, 0, Math.PI*2);
@@ -359,7 +361,6 @@ function drawEnemy(ctx, x, y, frame) {
 }
 
 function drawBackground(ctx) {
-    // 最初のデザイン（ピンクの空と丸い雲）
     ctx.fillStyle = COLORS.sky;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -373,32 +374,29 @@ function drawBackground(ctx) {
         ctx.fill();
     };
 
-    // オートラン用に背景スクロール速度を調整
     const offset = gameState.cameraX * 0.2;
     const w = canvas.width + 400;
     
-    // 複数の雲をループさせる
     for(let i = 0; i < 3; i++) {
         let x = (200 + i * 500 - offset) % w;
         if (x < -200) x += w;
-        cloud(x, 100 + (i%2)*50, 1.0 + (i%2)*0.2);
+        cloud(x, 150 + (i%2)*50, 1.0 + (i%2)*0.2); // 雲の位置も少し下げました
     }
 }
 
 /**
- * Game Logic - オートラン仕様
+ * Game Logic
  */
 class Level {
     constructor() {
         this.map = [];
         this.enemies = [];
-        this.width = 1000; // 長いコース
+        this.width = 1000;
         this.height = 15;
         this.generate();
     }
 
     generate() {
-        // Init
         for (let x = 0; x < this.width; x++) {
             this.map[x] = [];
             for (let y = 0; y < this.height; y++) {
@@ -406,34 +404,26 @@ class Level {
             }
         }
 
-        // オートラン用のマップ生成ロジック
         let groundY = 10;
         
         for (let x = 0; x < this.width; x++) {
-            // スタート地点は安全に
             if (x < 20) {
                 for(let y=groundY; y<15; y++) this.map[x][y] = 1;
                 continue;
             }
 
-            // 穴 (Gap)
             if (Math.random() < 0.1 && x % 15 !== 0) {
-                x += Math.floor(Math.random() * 2) + 1; // 2-3マスの穴
+                x += Math.floor(Math.random() * 2) + 1;
             } else {
-                // 地面
                 for(let y=groundY; y<15; y++) this.map[x][y] = 1;
 
-                // 障害物 (Block/Pipe)
                 if (Math.random() < 0.05) {
-                    // 地上の障害物
                     this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2; 
                 } else if (Math.random() < 0.05) {
-                    // 空中の足場
                     this.map[x][groundY-4] = 2;
                     if(Math.random() > 0.5) this.map[x+1][groundY-4] = 2;
                 }
                 
-                // 敵配置
                 if (Math.random() < 0.03) {
                     this.enemies.push({
                         x: x * TILE_SIZE,
@@ -493,7 +483,7 @@ function init() {
     resize();
     player.w = TILE_SIZE * 0.9;
     player.h = TILE_SIZE * 1.5;
-    player.x = TILE_SIZE * 4; // 少し前目からスタート
+    player.x = TILE_SIZE * 4;
     player.y = TILE_SIZE * 5;
     player.vx = MOVE_SPEED; 
     player.vy = 0;
@@ -518,10 +508,8 @@ function updatePhysics() {
         return;
     }
 
-    // --- Auto Run Logic ---
     player.vx = MOVE_SPEED;
 
-    // Jump
     if (jumpPressed && player.grounded) {
         player.vy = JUMP_FORCE;
         player.grounded = false;
@@ -532,7 +520,6 @@ function updatePhysics() {
     player.x += player.vx;
     player.y += player.vy;
 
-    // Distance
     gameState.distance = Math.floor(player.x / TILE_SIZE);
     document.getElementById('dist').innerText = `DIST: ${gameState.distance}m`;
 
@@ -543,7 +530,6 @@ function updatePhysics() {
         y: Math.floor(py / TILE_SIZE)
     });
 
-    // Vertical Collision
     if (player.vy >= 0) {
         const bl = getTile(player.x + 5, player.y + player.h);
         const br = getTile(player.x + player.w - 5, player.y + player.h);
@@ -565,7 +551,6 @@ function updatePhysics() {
         }
     }
 
-    // Horizontal Collision (Walls -> Game Over)
     const tr = getTile(player.x + player.w, player.y + 5);
     const br = getTile(player.x + player.w, player.y + player.h - 5);
     
@@ -575,12 +560,10 @@ function updatePhysics() {
 
     if (player.y > canvas.height + 100) die();
 
-    // Camera Logic
-    const targetCamX = player.x - canvas.width * 0.2; // 画面の20%の位置に固定
+    const targetCamX = player.x - canvas.width * 0.2;
     gameState.cameraX = targetCamX; 
     if (gameState.cameraX < 0) gameState.cameraX = 0;
 
-    // Enemy Collision
     level.enemies.forEach(e => {
         if(!e.active) return;
         if (player.x < e.x + TILE_SIZE &&
@@ -588,7 +571,6 @@ function updatePhysics() {
             player.y < e.y + TILE_SIZE &&
             player.y + player.h > e.y) {
             
-            // 踏みつけ判定
             if (player.vy > 0 && player.y + player.h < e.y + TILE_SIZE * 0.6) {
                 e.active = false;
                 player.vy = JUMP_FORCE * 0.6;
@@ -622,31 +604,20 @@ function gameLoop() {
     drawBackground(ctx);
     updatePhysics();
     level.draw(ctx, frameCount);
-    
-    // キャラクター描画（向きは右固定）
     drawPlayer(ctx, player.x - gameState.cameraX, player.y, frameCount);
     
     frameCount++;
     animationId = requestAnimationFrame(gameLoop);
 }
 
-/**
- * Event Listeners - タップのみのシンプル操作
- */
 document.getElementById('start-btn').addEventListener('click', init);
-
 const container = document.getElementById('game-container');
-
 const handleInput = (e) => {
     if(!gameState.isRunning) return;
     if(e.type !== 'mousedown') e.preventDefault();
     jumpPressed = true;
 };
-
-// Touch
 container.addEventListener('touchstart', handleInput, {passive: false});
-
-// Mouse / Keyboard
 container.addEventListener('mousedown', handleInput);
 window.addEventListener('keydown', e => {
     if(e.code === 'Space' || e.key === 'ArrowUp') handleInput(e);
