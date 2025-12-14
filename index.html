@@ -730,8 +730,8 @@ function setOverlayState(state, scoreValue = 0) {
   } else if (state === 'gameover') {
     overlayScene.style.display = 'none';
     overlayMessageEl.innerText = 'あらら...';
-    overlaySubtextEl.innerText = 'もう一度チャレンジする';
-    overlaySubtextEl.style.display = 'block';
+    overlaySubtextEl.innerText = '';
+    overlaySubtextEl.style.display = 'none';
     overlayScoreValue.innerText = scoreValue;
     overlayScorePanel.classList.add('visible');
     startBtn.innerText = 'もう一度チャレンジする';
