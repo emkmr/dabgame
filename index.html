@@ -434,6 +434,7 @@ class Level {
     }
 
     generate() {
+        // マップの初期化
         for (let x = 0; x < this.width; x++) {
             this.map[x] = [];
             for (let y = 0; y < this.height; y++) {
@@ -441,34 +442,86 @@ class Level {
             }
         }
 
-        let groundY = 10;
-        
+        let groundY = 10; // 地面の高さ（Y座標が大きいほど下）
+        let gapCooldown = 0; // 穴を生成した後のクールダウンカウンター
+
         for (let x = 0; x < this.width; x++) {
+            // スタート地点は安全に
             if (x < 20) {
                 for(let y=groundY; y<15; y++) this.map[x][y] = 1;
                 continue;
             }
 
-            if (Math.random() < 0.1 && x % 15 !== 0) {
-                x += Math.floor(Math.random() * 2) + 1;
-            } else {
+            // クールダウン中は必ず地面を作る（連続して穴ができないようにする）
+            if (gapCooldown > 0) {
+                gapCooldown--;
                 for(let y=groundY; y<15; y++) this.map[x][y] = 1;
-
-                if (Math.random() < 0.05) {
-                    this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2; 
-                } else if (Math.random() < 0.05) {
-                    this.map[x][groundY-4] = 2;
-                    if(Math.random() > 0.5) this.map[x+1][groundY-4] = 2;
-                }
                 
-                if (Math.random() < 0.03) {
-                    this.enemies.push({
-                        x: x * TILE_SIZE,
-                        y: (groundY - 1) * TILE_SIZE,
-                        active: true
-                    });
-                }
+                // アイテムや敵は配置しても良い
+                this.generateObjects(x, groundY);
+                continue;
             }
+
+            // 穴 (Gap) の生成判定
+            // 確率約10%で穴を作る
+            if (Math.random() < 0.1 && x < this.width - 20) {
+                // 穴の幅を決定（2〜3マス）
+                // 確実に飛び越えられる幅に制限する
+                const gapWidth = Math.floor(Math.random() * 2) + 2; 
+                
+                // 穴の分だけxを進める（マップ配列には何もセットしない）
+                x += gapWidth;
+                
+                // 穴の後は必ず着地スペースを作るため、クールダウンを設定
+                gapCooldown = 4; // 最低4マスは地面を作る
+
+                // 着地側の地面の高さを調整
+                // 飛び越えた先が高すぎると届かないので、変化を制限する
+                // -1(高くなる)〜+1(低くなる)の範囲
+                if (Math.random() < 0.5) {
+                    const diff = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+                    
+                    // 今より高くする(Yを減らす)場合は、慎重に
+                    if (diff === -1) {
+                         // ジャンプの頂点付近だと届かないので、基本は維持か下げるのが安全だが
+                         // 1段くらいならOKとする
+                    }
+                    groundY += diff;
+                    // 画面内に収める (6=高い 〜 13=低い)
+                    groundY = Math.max(7, Math.min(13, groundY));
+                }
+                continue; 
+            }
+
+            // 通常の地面生成
+            
+            // たまに地形の高さを変える（穴がない時）
+            if (Math.random() < 0.05) {
+                groundY += Math.random() > 0.5 ? 1 : -1;
+                groundY = Math.max(7, Math.min(13, groundY));
+            }
+
+            for(let y=groundY; y<15; y++) this.map[x][y] = 1;
+
+            // 障害物・敵・アイテム生成
+            this.generateObjects(x, groundY);
+        }
+    }
+
+    generateObjects(x, groundY) {
+        if (Math.random() < 0.05) {
+            this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2; 
+        } else if (Math.random() < 0.05) {
+            this.map[x][groundY-4] = 2;
+            if(Math.random() > 0.5) this.map[x+1][groundY-4] = 2;
+        }
+        
+        if (Math.random() < 0.03) {
+            this.enemies.push({
+                x: x * TILE_SIZE,
+                y: (groundY - 1) * TILE_SIZE,
+                active: true
+            });
         }
     }
 
