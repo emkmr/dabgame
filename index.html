@@ -732,6 +732,10 @@ function die() {
 
   setTimeout(() => {
     gameState.isRunning = false;
+    gameState.score = 0;
+    gameState.distance = 0;
+    document.getElementById('score').innerText = 'SCORE: 0';
+    document.getElementById('dist').innerText = '0';
     document.querySelector('#start-screen h1').innerText = "GAME OVER";
     document.querySelector('#start-btn').innerText = "TRY AGAIN";
     document.getElementById('start-screen').style.display = 'flex';
