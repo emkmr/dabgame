@@ -54,11 +54,10 @@
             box-sizing: border-box;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start; /* 上揃え */
+            align-items: flex-start;
             z-index: 100;
         }
 
-        /* 左上のスコア（これまで通りの見た目か、少しシンプルに） */
         #score {
             font-size: 16px;
             color: #555;
@@ -68,12 +67,11 @@
             font-weight: bold;
         }
 
-        /* 右上の距離（時間） - 参考画像のようにシンプルに数字だけ */
         #dist {
-            font-size: 36px; /* 大きく */
+            font-size: 36px;
             color: #333;
-            font-weight: 800; /* 極太 */
-            text-shadow: 2px 2px 0px rgba(255,255,255,0.5); /* 視認性確保のための軽い影 */
+            font-weight: 800;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.5);
             background: none;
             border: none;
             box-shadow: none;
@@ -94,7 +92,7 @@
             justify-content: center;
             align-items: center;
             color: #333;
-            z-index: 10;
+            z-index: 200; /* Z-Indexを高くして確実に押せるように */
             pointer-events: auto;
         }
 
@@ -160,7 +158,6 @@
     <div id="ui-layer">
         <div class="hud">
             <span id="score">SCORE: 0</span>
-            <!-- 数字だけのシンプルな表示 -->
             <span id="dist">0</span>
         </div>
     </div>
@@ -196,6 +193,7 @@ const COLORS = {
     text: '#333333'
 };
 
+// ゲーム定数（初期値）
 let TILE_SIZE = 40;
 let GRAVITY = 0.6;
 let JUMP_FORCE = -12;
@@ -209,31 +207,30 @@ let gameState = {
 };
 
 let jumpPressed = false;
-let isInitialized = false;
 
 /**
- * Resize & Responsive Layout
+ * Resize Logic
  */
-function setupConstants() {
-    if (isInitialized) return; // 既に初期化されていたら何もしない（座標ズレ防止）
-
-    // 初回のみ計算
-    TILE_SIZE = Math.ceil(window.innerHeight / 12);
+function calculateConstants() {
+    // 画面の高さに基づいてタイルサイズを決定（縦画面基準）
+    TILE_SIZE = Math.ceil(canvas.height / 12);
     GRAVITY = TILE_SIZE * 0.03;
     JUMP_FORCE = -(TILE_SIZE * 0.55);
     MOVE_SPEED = TILE_SIZE * 0.15;
-    
-    isInitialized = true;
 }
 
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // 定数のセットアップ（初回のみ実行される）
-    setupConstants();
+    // ゲームプレイ中でなければ定数を更新してプレビューを整える
+    // プレイ中は定数を変更しないことで座標ズレを防ぐ
+    if (!gameState.isRunning) {
+        calculateConstants();
+    }
 }
 window.addEventListener('resize', resize);
+// 初期実行
 resize();
 
 /**
@@ -426,13 +423,15 @@ class Level {
         this.generatedX = 0; 
         this.groundY = 10;
         this.gapCooldown = 0;
+        this.gapRemaining = 0;
         
-        // 初回生成
-        this.updateMap(window.innerWidth * 2);
+        // 初回生成範囲を広く取る（画面幅の3倍）
+        this.updateMap(window.innerWidth * 3);
     }
 
     updateMap(targetX) {
-        const targetTileX = Math.ceil(targetX / TILE_SIZE) + 20; 
+        // 先読み範囲を広めに (+50)
+        const targetTileX = Math.ceil(targetX / TILE_SIZE) + 50; 
         
         // 生成
         while (this.generatedX < targetTileX) {
@@ -440,81 +439,88 @@ class Level {
             this.generatedX++;
         }
         
-        // クリーンアップ: メモリリーク防止のため、通り過ぎたマップデータを削除
-        // プレイヤーの少し後ろ（画面幅の半分くらい）より前のデータを消す
-        const deleteThreshold = Math.floor((gameState.cameraX - canvas.width * 0.5) / TILE_SIZE);
-        
-        // deleteThresholdより小さいキーを持つマップデータを削除
-        // ※JavaScriptのオブジェクトキー走査は少し重いので、頻繁にやりすぎないようにする
-        // 簡易的に、100ブロック進むごとにまとめて消すようなロジックでも良いが、
-        // ここでは単純に enemies のフィルタリングと、もし可能なら map の削除を行う
-        
+        // クリーンアップ
+        const deleteThreshold = Math.floor((gameState.cameraX - canvas.width) / TILE_SIZE);
         this.enemies = this.enemies.filter(e => e.x > gameState.cameraX - canvas.width);
         
-        // mapの削除 (キーをループして古いものを消す)
-        // パフォーマンスへの影響を考慮し、カメラが進んだときだけ実行されるこのメソッド内でやるのはOK
-        for (let x in this.map) {
-            if (parseInt(x) < deleteThreshold) {
-                delete this.map[x];
+        // 古いマップデータの削除（パフォーマンス対策）
+        // キーの数は膨大になりうるので、毎回全チェックせず、
+        // 100回に1回くらいの頻度で行うか、あるいは単純に保持し続けても今のブラウザなら数万件程度は耐える
+        // ここでは安全のため、生成インデックスが一定数進んだら削除を試みる
+        if (this.generatedX % 100 === 0) {
+            for (let x in this.map) {
+                if (parseInt(x) < deleteThreshold) {
+                    delete this.map[x];
+                }
             }
         }
     }
 
     generateColumn(x) {
         this.map[x] = [];
+        // 初期化: 全てを0(空気)にする
         for(let y=0; y<15; y++) this.map[x][y] = 0;
         
-        if (x < 20) {
+        // スタート地点〜安全圏
+        if (x < 30) {
             for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
             return;
         }
 
+        // クールダウン処理（穴の直後）
         if (this.gapCooldown > 0) {
             this.gapCooldown--;
             for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
             
+            // クールダウン中もアイテム等は出してOK
             this.generateObjects(x, this.groundY);
             return;
         }
 
-        if (Math.random() < 0.1) {
-            const gapWidth = Math.floor(Math.random() * 2) + 2;
+        // 新しい穴の生成判定
+        if (this.gapRemaining <= 0 && Math.random() < 0.1) {
+            const gapWidth = Math.floor(Math.random() * 2) + 2; // 2~3マス
             this.gapRemaining = gapWidth; 
-            this.gapCooldown = gapWidth + 4; 
-            this.gapRemaining--;
+            this.gapCooldown = gapWidth + 5; // ジャンプ後着地スペース確保
             
+            // 穴なので地面生成をスキップするが、
+            // 穴の向こう側の高さをここで決めておく
             if (Math.random() < 0.5) {
                 const diff = Math.floor(Math.random() * 3) - 1; 
                 this.groundY += diff;
                 this.groundY = Math.max(7, Math.min(13, this.groundY));
             }
-            return; 
         }
 
+        // 穴生成中
         if (this.gapRemaining > 0) {
             this.gapRemaining--;
-            return; 
+            return; // 地面生成しない
         }
 
+        // 地面の高さをたまに変える
         if (Math.random() < 0.05) {
             this.groundY += Math.random() > 0.5 ? 1 : -1;
             this.groundY = Math.max(7, Math.min(13, this.groundY));
         }
 
+        // 地面生成
         for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
 
+        // オブジェクト配置
         this.generateObjects(x, this.groundY);
     }
 
     generateObjects(x, groundY) {
         if (Math.random() < 0.05) {
+            // 地上の障害物
             this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2; 
         } else if (Math.random() < 0.05) {
+            // 空中の足場
             this.map[x][groundY-4] = 2;
-            if(Math.random() > 0.5 && this.map[x+1]) { 
-            }
         }
         
+        // 敵
         if (Math.random() < 0.03) {
             this.enemies.push({
                 x: x * TILE_SIZE,
@@ -526,13 +532,14 @@ class Level {
 
     draw(ctx, frame) {
         const startCol = Math.floor(gameState.cameraX / TILE_SIZE);
-        const endCol = startCol + Math.ceil(canvas.width / TILE_SIZE) + 2;
+        // 描画範囲を少し広めに取る（チラつき防止）
+        const endCol = startCol + Math.ceil(canvas.width / TILE_SIZE) + 4;
 
         for (let x = startCol; x < endCol; x++) {
             if (!this.map[x]) continue;
             for (let y = 0; y < 15; y++) {
                 const type = this.map[x][y];
-                if (type !== 0) {
+                if (type && type !== 0) {
                     drawBlock(ctx, x * TILE_SIZE - gameState.cameraX, y * TILE_SIZE, type);
                 }
             }
@@ -562,9 +569,10 @@ let animationId;
 let frameCount = 0;
 
 function init() {
-    // リサイズ処理は行わず、初期化済みの定数を使う
-    if (!isInitialized) setupConstants();
-    
+    // ゲーム開始時: ここで画面サイズに合わせて定数を確定させる
+    resize();
+    calculateConstants();
+
     player.w = TILE_SIZE * 0.9;
     player.h = TILE_SIZE * 1.5;
     player.x = TILE_SIZE * 4;
@@ -592,6 +600,7 @@ function updatePhysics() {
         return;
     }
 
+    // マップ更新: 画面外も余裕を持って生成
     level.updateMap(player.x + canvas.width);
 
     player.vx = MOVE_SPEED;
@@ -608,7 +617,6 @@ function updatePhysics() {
 
     gameState.distance = Math.floor(player.x / TILE_SIZE);
     
-    // UI更新: 数字だけにする
     document.getElementById('dist').innerText = `${gameState.distance}`;
 
     player.grounded = false;
@@ -618,6 +626,7 @@ function updatePhysics() {
         y: Math.floor(py / TILE_SIZE)
     });
 
+    // 接地判定
     if (player.vy >= 0) {
         const bl = getTile(player.x + 5, player.y + player.h);
         const br = getTile(player.x + player.w - 5, player.y + player.h);
@@ -639,12 +648,13 @@ function updatePhysics() {
         }
     }
 
+    // 衝突判定
     const tr = getTile(player.x + player.w, player.y + 5);
     const br = getTile(player.x + player.w, player.y + player.h - 5);
     
     const checkHit = (tile) => {
         if (level.isSolid(tile.x, tile.y)) {
-             if (!level.map[tile.x] || level.map[tile.x][tile.y] === undefined) return true;
+             if (!level.map[tile.x]) return true; // 安全策
              
              const type = level.map[tile.x][tile.y];
              if (type === 2) { 
@@ -717,11 +727,15 @@ function gameLoop() {
     animationId = requestAnimationFrame(gameLoop);
 }
 
-document.getElementById('start-btn').addEventListener('click', init);
+// ボタンイベント: クリックとタッチ両方に対応
+const startBtn = document.getElementById('start-btn');
+startBtn.addEventListener('click', (e) => { e.preventDefault(); init(); });
+startBtn.addEventListener('touchstart', (e) => { e.preventDefault(); init(); });
+
 const container = document.getElementById('game-container');
 const handleInput = (e) => {
     if(!gameState.isRunning) return;
-    if(e.type !== 'mousedown') e.preventDefault();
+    if(e.type !== 'mousedown') e.preventDefault(); // タッチ時の重複イベント防止
     jumpPressed = true;
 };
 container.addEventListener('touchstart', handleInput, {passive: false});
