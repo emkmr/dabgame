@@ -209,19 +209,29 @@ let gameState = {
 };
 
 let jumpPressed = false;
+let isInitialized = false;
 
 /**
  * Resize & Responsive Layout
  */
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+function setupConstants() {
+    if (isInitialized) return; // 既に初期化されていたら何もしない（座標ズレ防止）
 
-    TILE_SIZE = Math.ceil(canvas.height / 12);
-    
+    // 初回のみ計算
+    TILE_SIZE = Math.ceil(window.innerHeight / 12);
     GRAVITY = TILE_SIZE * 0.03;
     JUMP_FORCE = -(TILE_SIZE * 0.55);
     MOVE_SPEED = TILE_SIZE * 0.15;
+    
+    isInitialized = true;
+}
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // 定数のセットアップ（初回のみ実行される）
+    setupConstants();
 }
 window.addEventListener('resize', resize);
 resize();
@@ -417,20 +427,36 @@ class Level {
         this.groundY = 10;
         this.gapCooldown = 0;
         
+        // 初回生成
         this.updateMap(window.innerWidth * 2);
     }
 
     updateMap(targetX) {
         const targetTileX = Math.ceil(targetX / TILE_SIZE) + 20; 
         
+        // 生成
         while (this.generatedX < targetTileX) {
             this.generateColumn(this.generatedX);
             this.generatedX++;
         }
         
-        const cleanupThreshold = Math.floor((gameState.cameraX - canvas.width) / TILE_SIZE);
-        if (cleanupThreshold > 0) {
-            this.enemies = this.enemies.filter(e => e.x > gameState.cameraX - canvas.width);
+        // クリーンアップ: メモリリーク防止のため、通り過ぎたマップデータを削除
+        // プレイヤーの少し後ろ（画面幅の半分くらい）より前のデータを消す
+        const deleteThreshold = Math.floor((gameState.cameraX - canvas.width * 0.5) / TILE_SIZE);
+        
+        // deleteThresholdより小さいキーを持つマップデータを削除
+        // ※JavaScriptのオブジェクトキー走査は少し重いので、頻繁にやりすぎないようにする
+        // 簡易的に、100ブロック進むごとにまとめて消すようなロジックでも良いが、
+        // ここでは単純に enemies のフィルタリングと、もし可能なら map の削除を行う
+        
+        this.enemies = this.enemies.filter(e => e.x > gameState.cameraX - canvas.width);
+        
+        // mapの削除 (キーをループして古いものを消す)
+        // パフォーマンスへの影響を考慮し、カメラが進んだときだけ実行されるこのメソッド内でやるのはOK
+        for (let x in this.map) {
+            if (parseInt(x) < deleteThreshold) {
+                delete this.map[x];
+            }
         }
     }
 
@@ -536,7 +562,9 @@ let animationId;
 let frameCount = 0;
 
 function init() {
-    resize();
+    // リサイズ処理は行わず、初期化済みの定数を使う
+    if (!isInitialized) setupConstants();
+    
     player.w = TILE_SIZE * 0.9;
     player.h = TILE_SIZE * 1.5;
     player.x = TILE_SIZE * 4;
