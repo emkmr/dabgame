@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Modern Platformer Runner</title>
+    <title>Infinite Runner</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap');
 
@@ -32,7 +32,6 @@
             height: 100%;
         }
 
-        /* UI Overlay */
         #ui-layer {
             position: absolute;
             top: 0;
@@ -46,7 +45,6 @@
         }
 
         .hud {
-            /* ノッチ対策: セーフエリアを考慮して余白を追加 */
             padding-top: max(20px, env(safe-area-inset-top) + 20px);
             padding-left: max(20px, env(safe-area-inset-left) + 20px);
             padding-right: max(20px, env(safe-area-inset-right) + 20px);
@@ -63,16 +61,15 @@
         }
 
         .hud span {
-            background: rgba(255, 255, 255, 0.9); /* 背景をより白く濃く */
+            background: rgba(255, 255, 255, 0.9);
             padding: 10px 20px;
             border-radius: 30px;
             backdrop-filter: blur(8px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15); /* 影をつけて浮き出させる */
-            border: 2px solid #fff; /* 白い縁取り */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            border: 2px solid #fff;
             color: #444;
         }
 
-        /* Start Screen */
         #start-screen {
             position: absolute;
             top: 0;
@@ -177,24 +174,21 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// Colors
 const COLORS = {
-    sky: '#FFD9E6',       // 薄めのピンク
-    ground: '#D4B856',    // 落ち着いた黄色
+    sky: '#FFD9E6',
+    ground: '#D4B856',
     groundDark: '#B89C40',
     blockQ: '#FFB347',
-    pipe: '#FF69B4',      // ピンクの土管
+    pipe: '#FF69B4',
     pipeDark: '#C71585',
     text: '#333333'
 };
 
-// Game Configuration
 let TILE_SIZE = 40;
 let GRAVITY = 0.6;
 let JUMP_FORCE = -12;
 let MOVE_SPEED = 6;
 
-// Game State
 let gameState = {
     isRunning: false,
     score: 0,
@@ -202,7 +196,6 @@ let gameState = {
     cameraX: 0
 };
 
-// Inputs
 let jumpPressed = false;
 
 /**
@@ -224,7 +217,6 @@ resize();
 /**
  * Drawing Functions
  */
-
 function drawPlayer(ctx, x, y, frame) {
     const w = TILE_SIZE * 0.9;
     const h = TILE_SIZE * 1.5;
@@ -232,9 +224,8 @@ function drawPlayer(ctx, x, y, frame) {
     ctx.save();
     ctx.translate(x, y);
 
-    const ps = w / 12; // Pixel Size unit
+    const ps = w / 12;
 
-    // Colors
     const c = {
         hair: '#222',
         skin: '#FCD',
@@ -248,32 +239,26 @@ function drawPlayer(ctx, x, y, frame) {
     let legOffsetR = 0;
 
     if (!player.grounded) {
-        // Jump
         legOffsetL = -1;
         legOffsetR = -2;
     } else {
-        // Run
         if (runFrame === 0) { legOffsetL = 0; legOffsetR = 0; }
         else if (runFrame === 1) { legOffsetL = -1; legOffsetR = 1; }
         else if (runFrame === 2) { legOffsetL = 0; legOffsetR = 0; }
         else { legOffsetL = 1; legOffsetR = -1; }
     }
 
-    // Hair
     ctx.fillStyle = c.hair;
     ctx.fillRect(ps*2, ps*1, ps*8, ps*10); 
     ctx.fillRect(ps*1, ps*3, ps*1, ps*8); 
     
-    // Legs
     ctx.fillStyle = c.pants;
     ctx.fillRect(ps*3, ps*11 + legOffsetL * ps, ps*2, ps*4); 
     ctx.fillRect(ps*7, ps*11 + legOffsetR * ps, ps*2, ps*4);
 
-    // Body
     ctx.fillStyle = c.vest;
     ctx.fillRect(ps*3, ps*5, ps*6, ps*6);
 
-    // Arms
     ctx.fillStyle = c.shirt;
     ctx.fillRect(ps*5, ps*5, ps*2, ps*2); 
     if(runFrame % 2 === 0 || !player.grounded) {
@@ -284,15 +269,12 @@ function drawPlayer(ctx, x, y, frame) {
         ctx.fillRect(ps*9, ps*6, ps*1, ps*4); 
     }
 
-    // Hands
     ctx.fillStyle = c.skin;
     ctx.fillRect(ps*2, ps*9 + (runFrame%2===0?0:-ps), ps*1, ps*1);
     ctx.fillRect(ps*9, ps*9 + (runFrame%2===0?0:ps), ps*1, ps*1);
 
-    // Face
     ctx.fillRect(ps*3, ps*1, ps*6, ps*4);
 
-    // Hair Front
     ctx.fillStyle = c.hair;
     ctx.fillRect(ps*3, 0, ps*6, ps*1);
     ctx.fillRect(ps*3, ps*1, ps*1, ps*3);
@@ -300,7 +282,6 @@ function drawPlayer(ctx, x, y, frame) {
     ctx.fillRect(ps*3, ps*1, ps*2, ps*1); 
     ctx.fillRect(ps*7, ps*1, ps*2, ps*1); 
 
-    // Face details
     ctx.fillStyle = '#000';
     ctx.fillRect(ps*4, ps*2, ps*1, ps*0.5); 
     ctx.fillRect(ps*7, ps*2, ps*1, ps*0.5); 
@@ -315,43 +296,35 @@ function drawBlock(ctx, x, y, type) {
         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
         ctx.fillStyle = COLORS.groundDark;
         ctx.fillRect(x, y + TILE_SIZE - 4, TILE_SIZE, 4); 
-    } else if (type === 2) { // Scissors Item (Formerly Lucky Block)
+    } else if (type === 2) { // Scissors
         const cx = x + TILE_SIZE/2;
         const cy = y + TILE_SIZE/2;
-        const s = TILE_SIZE * 0.7; // size
+        const s = TILE_SIZE * 0.7;
 
         ctx.save();
         ctx.translate(cx, cy);
         
-        // ハサミの描画
-        // 持ち手
-        ctx.strokeStyle = '#444'; // 黒っぽい持ち手
+        ctx.strokeStyle = '#444';
         ctx.lineWidth = s * 0.15;
         
-        // 左の穴
         ctx.beginPath();
         ctx.arc(-s*0.25, s*0.4, s*0.2, 0, Math.PI * 2);
         ctx.stroke();
         
-        // 右の穴
         ctx.beginPath();
         ctx.arc(s*0.25, s*0.4, s*0.2, 0, Math.PI * 2);
         ctx.stroke();
 
-        // 刃 (銀色)
         ctx.fillStyle = '#C0C0C0';
         ctx.beginPath();
-        // 左刃
         ctx.moveTo(-s*0.25, s*0.2); 
-        ctx.lineTo(0, -s*0.6); // 先端
+        ctx.lineTo(0, -s*0.6);
         ctx.lineTo(s*0.05, s*0.2);
-        // 右刃
         ctx.moveTo(s*0.25, s*0.2);
-        ctx.lineTo(0, -s*0.6); // 先端
+        ctx.lineTo(0, -s*0.6);
         ctx.lineTo(-s*0.05, s*0.2);
         ctx.fill();
 
-        // 支点
         ctx.fillStyle = '#666';
         ctx.beginPath();
         ctx.arc(0, 0, s*0.05, 0, Math.PI*2);
@@ -417,7 +390,7 @@ function drawBackground(ctx) {
     for(let i = 0; i < 3; i++) {
         let x = (200 + i * 500 - offset) % w;
         if (x < -200) x += w;
-        cloud(x, 150 + (i%2)*50, 1.0 + (i%2)*0.2); // 雲の位置も少し下げました
+        cloud(x, 150 + (i%2)*50, 1.0 + (i%2)*0.2); 
     }
 }
 
@@ -426,86 +399,75 @@ function drawBackground(ctx) {
  */
 class Level {
     constructor() {
-        this.map = [];
+        this.map = {}; 
         this.enemies = [];
-        this.width = 1000;
-        this.height = 15;
-        this.generate();
+        this.generatedX = 0; 
+        this.groundY = 10;
+        this.gapCooldown = 0;
+        
+        this.updateMap(window.innerWidth * 2);
     }
 
-    generate() {
-        // マップの初期化
-        for (let x = 0; x < this.width; x++) {
-            this.map[x] = [];
-            for (let y = 0; y < this.height; y++) {
-                this.map[x][y] = 0;
-            }
+    updateMap(targetX) {
+        const targetTileX = Math.ceil(targetX / TILE_SIZE) + 20; 
+        
+        while (this.generatedX < targetTileX) {
+            this.generateColumn(this.generatedX);
+            this.generatedX++;
+        }
+        
+        const cleanupThreshold = Math.floor((gameState.cameraX - canvas.width) / TILE_SIZE);
+        if (cleanupThreshold > 0) {
+            this.enemies = this.enemies.filter(e => e.x > gameState.cameraX - canvas.width);
+        }
+    }
+
+    generateColumn(x) {
+        this.map[x] = [];
+        // 初期化: 全てを0(空気)にする
+        // これがないとundefinedとなり、!==0判定で壁とみなされてしまう
+        for(let y=0; y<15; y++) this.map[x][y] = 0;
+        
+        if (x < 20) {
+            for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
+            return;
         }
 
-        let groundY = 10; // 地面の高さ（Y座標が大きいほど下）
-        let gapCooldown = 0; // 穴を生成した後のクールダウンカウンター
-
-        for (let x = 0; x < this.width; x++) {
-            // スタート地点は安全に
-            if (x < 20) {
-                for(let y=groundY; y<15; y++) this.map[x][y] = 1;
-                continue;
-            }
-
-            // クールダウン中は必ず地面を作る（連続して穴ができないようにする）
-            if (gapCooldown > 0) {
-                gapCooldown--;
-                for(let y=groundY; y<15; y++) this.map[x][y] = 1;
-                
-                // アイテムや敵は配置しても良い
-                this.generateObjects(x, groundY);
-                continue;
-            }
-
-            // 穴 (Gap) の生成判定
-            // 確率約10%で穴を作る
-            if (Math.random() < 0.1 && x < this.width - 20) {
-                // 穴の幅を決定（2〜3マス）
-                // 確実に飛び越えられる幅に制限する
-                const gapWidth = Math.floor(Math.random() * 2) + 2; 
-                
-                // 穴の分だけxを進める（マップ配列には何もセットしない）
-                x += gapWidth;
-                
-                // 穴の後は必ず着地スペースを作るため、クールダウンを設定
-                gapCooldown = 4; // 最低4マスは地面を作る
-
-                // 着地側の地面の高さを調整
-                // 飛び越えた先が高すぎると届かないので、変化を制限する
-                // -1(高くなる)〜+1(低くなる)の範囲
-                if (Math.random() < 0.5) {
-                    const diff = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
-                    
-                    // 今より高くする(Yを減らす)場合は、慎重に
-                    if (diff === -1) {
-                         // ジャンプの頂点付近だと届かないので、基本は維持か下げるのが安全だが
-                         // 1段くらいならOKとする
-                    }
-                    groundY += diff;
-                    // 画面内に収める (6=高い 〜 13=低い)
-                    groundY = Math.max(7, Math.min(13, groundY));
-                }
-                continue; 
-            }
-
-            // 通常の地面生成
+        if (this.gapCooldown > 0) {
+            this.gapCooldown--;
+            for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
             
-            // たまに地形の高さを変える（穴がない時）
-            if (Math.random() < 0.05) {
-                groundY += Math.random() > 0.5 ? 1 : -1;
-                groundY = Math.max(7, Math.min(13, groundY));
-            }
-
-            for(let y=groundY; y<15; y++) this.map[x][y] = 1;
-
-            // 障害物・敵・アイテム生成
-            this.generateObjects(x, groundY);
+            this.generateObjects(x, this.groundY);
+            return;
         }
+
+        if (Math.random() < 0.1) {
+            const gapWidth = Math.floor(Math.random() * 2) + 2;
+            this.gapRemaining = gapWidth; 
+            this.gapCooldown = gapWidth + 4; 
+            this.gapRemaining--;
+            
+            if (Math.random() < 0.5) {
+                const diff = Math.floor(Math.random() * 3) - 1; 
+                this.groundY += diff;
+                this.groundY = Math.max(7, Math.min(13, this.groundY));
+            }
+            return; 
+        }
+
+        if (this.gapRemaining > 0) {
+            this.gapRemaining--;
+            return; 
+        }
+
+        if (Math.random() < 0.05) {
+            this.groundY += Math.random() > 0.5 ? 1 : -1;
+            this.groundY = Math.max(7, Math.min(13, this.groundY));
+        }
+
+        for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
+
+        this.generateObjects(x, this.groundY);
     }
 
     generateObjects(x, groundY) {
@@ -513,7 +475,8 @@ class Level {
             this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2; 
         } else if (Math.random() < 0.05) {
             this.map[x][groundY-4] = 2;
-            if(Math.random() > 0.5) this.map[x+1][groundY-4] = 2;
+            if(Math.random() > 0.5 && this.map[x+1]) { 
+            }
         }
         
         if (Math.random() < 0.03) {
@@ -548,21 +511,15 @@ class Level {
 
     isSolid(x, y) {
         if (x < 0) return true; 
-        if (x >= this.width) return false;
+        if (!this.map[x]) return false;
         if (y < 0 || y >= 15) return false;
-        return this.map[x][y] !== 0;
+        // 修正: undefined チェックを追加して安全にする
+        return this.map[x][y] !== undefined && this.map[x][y] !== 0;
     }
 }
 
 let player = {
-    x: 0,
-    y: 0,
-    vx: 0,
-    vy: 0,
-    w: 0, 
-    h: 0,
-    grounded: false,
-    dead: false
+    x: 0, y: 0, vx: 0, vy: 0, w: 0, h: 0, grounded: false, dead: false
 };
 
 let level;
@@ -597,6 +554,8 @@ function updatePhysics() {
         player.y += player.vy;
         return;
     }
+
+    level.updateMap(player.x + canvas.width);
 
     player.vx = MOVE_SPEED;
 
@@ -641,29 +600,25 @@ function updatePhysics() {
         }
     }
 
-    // Horizontal Collision (Walls -> Game Over or Break Block)
     const tr = getTile(player.x + player.w, player.y + 5);
     const br = getTile(player.x + player.w, player.y + player.h - 5);
     
-    // Check for collision with blocks
     const checkHit = (tile) => {
         if (level.isSolid(tile.x, tile.y)) {
-             // Safe check
              if (!level.map[tile.x] || level.map[tile.x][tile.y] === undefined) return true;
              
              const type = level.map[tile.x][tile.y];
-             if (type === 2) { // Scissors Item (Lucky Block)
-                 level.map[tile.x][tile.y] = 0; // Destroy block
-                 gameState.score += 50; // Bonus score
+             if (type === 2) { 
+                 level.map[tile.x][tile.y] = 0; 
+                 gameState.score += 50; 
                  document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
-                 return false; // Not a lethal hit
+                 return false; 
              }
-             return true; // Lethal hit (Pipe, Ground)
+             return true; 
         }
         return false;
     };
 
-    // Check both top-right and bottom-right corners
     const hitTop = checkHit(tr);
     const hitBottom = checkHit(br);
 
