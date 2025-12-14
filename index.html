@@ -289,7 +289,7 @@ canvas {
         <span class="overlay-star">★</span>
       </div>
 
-      <p class="overlay-subtext" id="overlay-subtext">画面をタップすると始まります</p>
+      <p class="overlay-subtext" id="overlay-subtext"></p>
       <button class="start-btn" id="start-btn">PLAY GAME</button>
     </div>
   </div>
@@ -720,13 +720,15 @@ function setOverlayState(state, scoreValue = 0) {
   if (state === 'start') {
     overlayScene.style.display = 'block';
     overlayMessageEl.innerText = 'PYON PYON SATOSHI';
-    overlaySubtextEl.innerText = '画面をタップすると始まります';
+    overlaySubtextEl.innerText = '';
+    overlaySubtextEl.style.display = 'none';
     overlayScorePanel.classList.remove('visible');
     startBtn.innerText = 'PLAY GAME';
   } else if (state === 'gameover') {
     overlayScene.style.display = 'none';
     overlayMessageEl.innerText = 'あらら...';
     overlaySubtextEl.innerText = 'もう一度チャレンジする';
+    overlaySubtextEl.style.display = 'block';
     overlayScoreValue.innerText = scoreValue;
     overlayScorePanel.classList.add('visible');
     startBtn.innerText = 'もう一度チャレンジする';
