@@ -52,22 +52,33 @@
             
             width: 100%;
             box-sizing: border-box;
-            color: #333;
-            font-weight: bold;
-            font-size: 20px;
             display: flex;
             justify-content: space-between;
+            align-items: flex-start; /* 上揃え */
             z-index: 100;
         }
 
-        .hud span {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px 20px;
-            border-radius: 30px;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            border: 2px solid #fff;
-            color: #444;
+        /* 左上のスコア（これまで通りの見た目か、少しシンプルに） */
+        #score {
+            font-size: 16px;
+            color: #555;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        /* 右上の距離（時間） - 参考画像のようにシンプルに数字だけ */
+        #dist {
+            font-size: 36px; /* 大きく */
+            color: #333;
+            font-weight: 800; /* 極太 */
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.5); /* 視認性確保のための軽い影 */
+            background: none;
+            border: none;
+            box-shadow: none;
+            padding: 0;
+            margin-right: 10px;
         }
 
         #start-screen {
@@ -149,7 +160,8 @@
     <div id="ui-layer">
         <div class="hud">
             <span id="score">SCORE: 0</span>
-            <span id="dist">DIST: 0m</span>
+            <!-- 数字だけのシンプルな表示 -->
+            <span id="dist">0</span>
         </div>
     </div>
 
@@ -424,8 +436,6 @@ class Level {
 
     generateColumn(x) {
         this.map[x] = [];
-        // 初期化: 全てを0(空気)にする
-        // これがないとundefinedとなり、!==0判定で壁とみなされてしまう
         for(let y=0; y<15; y++) this.map[x][y] = 0;
         
         if (x < 20) {
@@ -513,7 +523,6 @@ class Level {
         if (x < 0) return true; 
         if (!this.map[x]) return false;
         if (y < 0 || y >= 15) return false;
-        // 修正: undefined チェックを追加して安全にする
         return this.map[x][y] !== undefined && this.map[x][y] !== 0;
     }
 }
@@ -570,7 +579,9 @@ function updatePhysics() {
     player.y += player.vy;
 
     gameState.distance = Math.floor(player.x / TILE_SIZE);
-    document.getElementById('dist').innerText = `DIST: ${gameState.distance}m`;
+    
+    // UI更新: 数字だけにする
+    document.getElementById('dist').innerText = `${gameState.distance}`;
 
     player.grounded = false;
     
