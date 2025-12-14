@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Infinite Runner</title>
+<title>DaB GAME</title>
+<link rel="icon" type="image/png" href="assets/app-icon.png">
+<link rel="apple-touch-icon" href="assets/app-icon.png">
+<meta name="apple-mobile-web-app-title" content="DaB GAME">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap');
 
@@ -258,7 +261,7 @@ canvas {
 
   <div id="start-screen">
     <div class="overlay-card">
-      <p class="overlay-caption">DaB GAME</p>
+      <p class="overlay-caption">ぴょんぴょんSATOSHI</p>
       <div class="overlay-scene" id="overlay-scene">
         <div class="overlay-scene-sky">
           <span class="overlay-scene-moon">☾</span>
@@ -278,7 +281,7 @@ canvas {
           <div class="overlay-sound">🔈</div>
         </div>
       </div>
-      <h1 class="overlay-message" id="overlay-message">PYON PYON SATOSHI</h1>
+      <h1 class="overlay-message" id="overlay-message">DaB GAME</h1>
 
       <div class="overlay-score-panel" id="overlay-score-panel">
         <span class="overlay-star">★</span>
@@ -719,11 +722,11 @@ let frameCount = 0;
 function setOverlayState(state, scoreValue = 0) {
   if (state === 'start') {
     overlayScene.style.display = 'block';
-    overlayMessageEl.innerText = 'PYON PYON SATOSHI';
+    overlayMessageEl.innerText = 'DaB GAME';
     overlaySubtextEl.innerText = '';
     overlaySubtextEl.style.display = 'none';
     overlayScorePanel.classList.remove('visible');
-    startBtn.innerText = 'PLAY GAME';
+    startBtn.innerText = 'START!!';
   } else if (state === 'gameover') {
     overlayScene.style.display = 'none';
     overlayMessageEl.innerText = 'あらら...';
