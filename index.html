@@ -7,6 +7,11 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap');
 
+:root {
+  --ground-color: #f7df7a;
+  --ground-dark-color: #e0c25f;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -120,7 +125,7 @@ canvas {
   border-radius: 28px;
   border: 4px solid #2f4357;
   padding: 34px 26px 40px;
-  background: linear-gradient(180deg, #8cc0f4 0%, #8cc0f4 58%, #f7df7a 58%, #f7df7a 100%);
+  background: linear-gradient(180deg, #8cc0f4 0%, #8cc0f4 58%, var(--ground-color) 58%, var(--ground-color) 100%);
   box-shadow: 0 25px 40px rgba(0,0,0,0.2);
   text-align: center;
   color: #2c2c2c;
@@ -130,13 +135,71 @@ canvas {
   font-size: 14px;
   letter-spacing: 0.3em;
   color: rgba(33, 33, 33, 0.8);
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 
-.overlay-moon {
-  font-size: 46px;
-  color: rgba(255,255,255,0.8);
-  margin-bottom: 16px;
+.overlay-scene {
+  border-radius: 24px;
+  border: 3px solid #1f2d40;
+  overflow: hidden;
+  margin-bottom: 22px;
+  background: #8cc0f4;
+  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.05);
+}
+
+.overlay-scene-sky {
+  background: #8cc0f4;
+  padding: 24px 18px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.overlay-scene-moon {
+  font-size: 42px;
+  color: rgba(255,255,255,0.9);
+  align-self: flex-start;
+}
+
+.overlay-scene-text {
+  font-size: 16px;
+  color: rgba(34,34,34,0.7);
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.overlay-hand {
+  width: 54px;
+  height: 54px;
+}
+
+.overlay-hand svg {
+  width: 100%;
+  height: 100%;
+}
+
+.overlay-scene-ground {
+  background: linear-gradient(0deg, var(--ground-color) 0%, var(--ground-color) 100%);
+  padding: 16px 18px 20px;
+  position: relative;
+  min-height: 90px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.overlay-scene-character {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.overlay-sound {
+  position: absolute;
+  left: 20px;
+  bottom: 16px;
+  font-size: 18px;
+  color: #2f2f2f;
 }
 
 .overlay-message {
@@ -196,7 +259,25 @@ canvas {
   <div id="start-screen">
     <div class="overlay-card">
       <p class="overlay-caption">DaB GAME</p>
-      <div class="overlay-moon">☾</div>
+      <div class="overlay-scene" id="overlay-scene">
+        <div class="overlay-scene-sky">
+          <span class="overlay-scene-moon">☾</span>
+          <p class="overlay-scene-text">タップしてプレイ</p>
+          <div class="overlay-hand">
+            <svg viewBox="0 0 64 64" fill="none" stroke="#555" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 26v-8a4 4 0 0 1 8 0v9"></path>
+              <path d="M28 22v-6a4 4 0 0 1 8 0v10"></path>
+              <path d="M36 24v-8a4 4 0 0 1 8 0v16"></path>
+              <path d="M44 28v-6a4 4 0 0 1 8 0v20c0 8-6 14-14 14h-4"></path>
+              <path d="M18 30c0 10 6 20 10 24"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="overlay-scene-ground">
+          <img src="assets/start_character.png" alt="runner" class="overlay-scene-character">
+          <div class="overlay-sound">🔈</div>
+        </div>
+      </div>
       <h1 class="overlay-message" id="overlay-message">PYON PYON SATOSHI</h1>
 
       <div class="overlay-score-panel" id="overlay-score-panel">
@@ -222,6 +303,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const startScreenEl = document.getElementById('start-screen');
 const overlayMessageEl = document.getElementById('overlay-message');
+const overlayScene = document.getElementById('overlay-scene');
 const overlayScorePanel = document.getElementById('overlay-score-panel');
 const overlayScoreValue = document.getElementById('overlay-score-value');
 const overlaySubtextEl = document.getElementById('overlay-subtext');
@@ -229,8 +311,8 @@ const startBtn = document.getElementById('start-btn');
 
 const COLORS = {
   sky: '#FFD9E6',
-  ground: '#D4B856',
-  groundDark: '#B89C40',
+  ground: '#F7DF7A',
+  groundDark: '#E0C25F',
   blockQ: '#FFB347',
   pipe: '#FF69B4',
   pipeDark: '#C71585',
@@ -636,11 +718,13 @@ let frameCount = 0;
 
 function setOverlayState(state, scoreValue = 0) {
   if (state === 'start') {
+    overlayScene.style.display = 'block';
     overlayMessageEl.innerText = 'PYON PYON SATOSHI';
     overlaySubtextEl.innerText = '画面をタップすると始まります';
     overlayScorePanel.classList.remove('visible');
     startBtn.innerText = 'PLAY GAME';
   } else if (state === 'gameover') {
+    overlayScene.style.display = 'none';
     overlayMessageEl.innerText = 'あらら...';
     overlaySubtextEl.innerText = 'もう一度チャレンジする';
     overlayScoreValue.innerText = scoreValue;
