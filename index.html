@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Infinite Runner</title>
+    <title>Infinite Runner Fixed</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700&display=swap');
 
@@ -92,7 +92,7 @@
             justify-content: center;
             align-items: center;
             color: #333;
-            z-index: 200; /* Z-Indexを高くして確実に押せるように */
+            z-index: 200;
             pointer-events: auto;
         }
 
@@ -213,7 +213,11 @@ let jumpPressed = false;
  */
 function calculateConstants() {
     // 画面の高さに基づいてタイルサイズを決定（縦画面基準）
+    // どんな画面でも最低限の視認性を確保するサイズ計算
     TILE_SIZE = Math.ceil(canvas.height / 12);
+    // 極端に小さい場合や大きい場合のガード
+    TILE_SIZE = Math.max(30, Math.min(60, TILE_SIZE));
+
     GRAVITY = TILE_SIZE * 0.03;
     JUMP_FORCE = -(TILE_SIZE * 0.55);
     MOVE_SPEED = TILE_SIZE * 0.15;
@@ -313,8 +317,16 @@ function drawBlock(ctx, x, y, type) {
     if (type === 1) { // Ground
         ctx.fillStyle = COLORS.ground;
         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+        
+        // 【修正】画面下端まで隙間なく塗りつぶす処理
+        // リサイズ等で画面下に隙間ができても、地面があるように見せる
+        if (y + TILE_SIZE < canvas.height) {
+            ctx.fillRect(x, y + TILE_SIZE, TILE_SIZE, canvas.height - (y + TILE_SIZE));
+        }
+
         ctx.fillStyle = COLORS.groundDark;
         ctx.fillRect(x, y + TILE_SIZE - 4, TILE_SIZE, 4); 
+
     } else if (type === 2) { // Scissors
         const cx = x + TILE_SIZE/2;
         const cy = y + TILE_SIZE/2;
@@ -425,28 +437,22 @@ class Level {
         this.gapCooldown = 0;
         this.gapRemaining = 0;
         
-        // 初回生成範囲を広く取る（画面幅の3倍）
         this.updateMap(window.innerWidth * 3);
     }
 
     updateMap(targetX) {
-        // 先読み範囲を広めに (+50)
-        const targetTileX = Math.ceil(targetX / TILE_SIZE) + 50; 
+        // 先読み範囲をさらに広めに (+100)
+        // 描画が追いつかない現象を防ぐ
+        const targetTileX = Math.ceil(targetX / TILE_SIZE) + 100; 
         
-        // 生成
         while (this.generatedX < targetTileX) {
             this.generateColumn(this.generatedX);
             this.generatedX++;
         }
         
-        // クリーンアップ
-        const deleteThreshold = Math.floor((gameState.cameraX - canvas.width) / TILE_SIZE);
-        this.enemies = this.enemies.filter(e => e.x > gameState.cameraX - canvas.width);
+        const deleteThreshold = Math.floor((gameState.cameraX - canvas.width) / TILE_SIZE) - 20;
+        this.enemies = this.enemies.filter(e => e.x > (gameState.cameraX - canvas.width));
         
-        // 古いマップデータの削除（パフォーマンス対策）
-        // キーの数は膨大になりうるので、毎回全チェックせず、
-        // 100回に1回くらいの頻度で行うか、あるいは単純に保持し続けても今のブラウザなら数万件程度は耐える
-        // ここでは安全のため、生成インデックスが一定数進んだら削除を試みる
         if (this.generatedX % 100 === 0) {
             for (let x in this.map) {
                 if (parseInt(x) < deleteThreshold) {
@@ -458,33 +464,27 @@ class Level {
 
     generateColumn(x) {
         this.map[x] = [];
-        // 初期化: 全てを0(空気)にする
-        for(let y=0; y<15; y++) this.map[x][y] = 0;
+        // 初期化: 余裕を持って20行まで作る
+        for(let y=0; y<20; y++) this.map[x][y] = 0;
         
         // スタート地点〜安全圏
         if (x < 30) {
-            for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
+            for(let y=this.groundY; y<20; y++) this.map[x][y] = 1;
             return;
         }
 
-        // クールダウン処理（穴の直後）
         if (this.gapCooldown > 0) {
             this.gapCooldown--;
-            for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
-            
-            // クールダウン中もアイテム等は出してOK
+            for(let y=this.groundY; y<20; y++) this.map[x][y] = 1;
             this.generateObjects(x, this.groundY);
             return;
         }
 
-        // 新しい穴の生成判定
         if (this.gapRemaining <= 0 && Math.random() < 0.1) {
-            const gapWidth = Math.floor(Math.random() * 2) + 2; // 2~3マス
+            const gapWidth = Math.floor(Math.random() * 2) + 2; 
             this.gapRemaining = gapWidth; 
-            this.gapCooldown = gapWidth + 5; // ジャンプ後着地スペース確保
+            this.gapCooldown = gapWidth + 5; 
             
-            // 穴なので地面生成をスキップするが、
-            // 穴の向こう側の高さをここで決めておく
             if (Math.random() < 0.5) {
                 const diff = Math.floor(Math.random() * 3) - 1; 
                 this.groundY += diff;
@@ -492,35 +492,28 @@ class Level {
             }
         }
 
-        // 穴生成中
         if (this.gapRemaining > 0) {
             this.gapRemaining--;
-            return; // 地面生成しない
+            return; 
         }
 
-        // 地面の高さをたまに変える
         if (Math.random() < 0.05) {
             this.groundY += Math.random() > 0.5 ? 1 : -1;
             this.groundY = Math.max(7, Math.min(13, this.groundY));
         }
 
-        // 地面生成
-        for(let y=this.groundY; y<15; y++) this.map[x][y] = 1;
+        for(let y=this.groundY; y<20; y++) this.map[x][y] = 1;
 
-        // オブジェクト配置
         this.generateObjects(x, this.groundY);
     }
 
     generateObjects(x, groundY) {
         if (Math.random() < 0.05) {
-            // 地上の障害物
             this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2; 
         } else if (Math.random() < 0.05) {
-            // 空中の足場
             this.map[x][groundY-4] = 2;
         }
         
-        // 敵
         if (Math.random() < 0.03) {
             this.enemies.push({
                 x: x * TILE_SIZE,
@@ -531,23 +524,27 @@ class Level {
     }
 
     draw(ctx, frame) {
-        const startCol = Math.floor(gameState.cameraX / TILE_SIZE);
-        // 描画範囲を少し広めに取る（チラつき防止）
-        const endCol = startCol + Math.ceil(canvas.width / TILE_SIZE) + 4;
+        const startCol = Math.floor(gameState.cameraX / TILE_SIZE) - 2; // 少し手前から描画
+        const endCol = startCol + Math.ceil(canvas.width / TILE_SIZE) + 8; // 余裕を持って奥まで描画
 
         for (let x = startCol; x < endCol; x++) {
             if (!this.map[x]) continue;
-            for (let y = 0; y < 15; y++) {
+            // 描画範囲を縦にも少し広げる
+            for (let y = 0; y < 20; y++) {
                 const type = this.map[x][y];
                 if (type && type !== 0) {
-                    drawBlock(ctx, x * TILE_SIZE - gameState.cameraX, y * TILE_SIZE, type);
+                    // 座標を整数化して描画ズレ（隙間）を防ぐ
+                    const drawX = Math.floor(x * TILE_SIZE - gameState.cameraX);
+                    const drawY = Math.floor(y * TILE_SIZE);
+                    drawBlock(ctx, drawX, drawY, type);
                 }
             }
         }
 
         this.enemies.forEach(e => {
-            if (e.active && e.x > gameState.cameraX - TILE_SIZE && e.x < gameState.cameraX + canvas.width) {
-                drawEnemy(ctx, e.x - gameState.cameraX, e.y, frame);
+            // 敵の描画範囲チェックも広めに
+            if (e.active && e.x > gameState.cameraX - TILE_SIZE * 2 && e.x < gameState.cameraX + canvas.width + TILE_SIZE * 2) {
+                drawEnemy(ctx, Math.floor(e.x - gameState.cameraX), Math.floor(e.y), frame);
             }
         });
     }
@@ -555,7 +552,8 @@ class Level {
     isSolid(x, y) {
         if (x < 0) return true; 
         if (!this.map[x]) return false;
-        if (y < 0 || y >= 15) return false;
+        // yの範囲チェックを少し緩く
+        if (y < 0 || y >= 20) return false;
         return this.map[x][y] !== undefined && this.map[x][y] !== 0;
     }
 }
@@ -569,7 +567,6 @@ let animationId;
 let frameCount = 0;
 
 function init() {
-    // ゲーム開始時: ここで画面サイズに合わせて定数を確定させる
     resize();
     calculateConstants();
 
@@ -600,8 +597,8 @@ function updatePhysics() {
         return;
     }
 
-    // マップ更新: 画面外も余裕を持って生成
-    level.updateMap(player.x + canvas.width);
+    // 画面幅が変わっても十分な生成を担保
+    level.updateMap(player.x + Math.max(canvas.width, window.innerWidth) * 1.5);
 
     player.vx = MOVE_SPEED;
 
@@ -626,7 +623,6 @@ function updatePhysics() {
         y: Math.floor(py / TILE_SIZE)
     });
 
-    // 接地判定
     if (player.vy >= 0) {
         const bl = getTile(player.x + 5, player.y + player.h);
         const br = getTile(player.x + player.w - 5, player.y + player.h);
@@ -648,13 +644,12 @@ function updatePhysics() {
         }
     }
 
-    // 衝突判定
-    const tr = getTile(player.x + player.w, player.y + 5);
-    const br = getTile(player.x + player.w, player.y + player.h - 5);
+    const tr = getTile(player.x + player.w - 5, player.y + 5);
+    const br = getTile(player.x + player.w - 5, player.y + player.h - 5);
     
     const checkHit = (tile) => {
         if (level.isSolid(tile.x, tile.y)) {
-             if (!level.map[tile.x]) return true; // 安全策
+             if (!level.map[tile.x]) return true; 
              
              const type = level.map[tile.x][tile.y];
              if (type === 2) { 
@@ -675,7 +670,8 @@ function updatePhysics() {
         die();
     }
 
-    if (player.y > canvas.height + 100) die();
+    // 落下判定を厳密にしすぎない（画面高さの2倍まで許容）
+    if (player.y > canvas.height * 2) die();
 
     const targetCamX = player.x - canvas.width * 0.2;
     gameState.cameraX = targetCamX; 
@@ -727,7 +723,6 @@ function gameLoop() {
     animationId = requestAnimationFrame(gameLoop);
 }
 
-// ボタンイベント: クリックとタッチ両方に対応
 const startBtn = document.getElementById('start-btn');
 startBtn.addEventListener('click', (e) => { e.preventDefault(); init(); });
 startBtn.addEventListener('touchstart', (e) => { e.preventDefault(); init(); });
@@ -735,7 +730,7 @@ startBtn.addEventListener('touchstart', (e) => { e.preventDefault(); init(); });
 const container = document.getElementById('game-container');
 const handleInput = (e) => {
     if(!gameState.isRunning) return;
-    if(e.type !== 'mousedown') e.preventDefault(); // タッチ時の重複イベント防止
+    if(e.type !== 'mousedown') e.preventDefault(); 
     jumpPressed = true;
 };
 container.addEventListener('touchstart', handleInput, {passive: false});
