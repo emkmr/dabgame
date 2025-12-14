@@ -315,13 +315,50 @@ function drawBlock(ctx, x, y, type) {
         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
         ctx.fillStyle = COLORS.groundDark;
         ctx.fillRect(x, y + TILE_SIZE - 4, TILE_SIZE, 4); 
-    } else if (type === 2) { // Lucky Block
-        ctx.fillStyle = COLORS.blockQ;
-        ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-        ctx.fillStyle = '#FFF';
-        ctx.font = `bold ${TILE_SIZE * 0.6}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText('?', x + TILE_SIZE/2, y + TILE_SIZE * 0.7);
+    } else if (type === 2) { // Scissors Item (Formerly Lucky Block)
+        const cx = x + TILE_SIZE/2;
+        const cy = y + TILE_SIZE/2;
+        const s = TILE_SIZE * 0.7; // size
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        
+        // ハサミの描画
+        // 持ち手
+        ctx.strokeStyle = '#444'; // 黒っぽい持ち手
+        ctx.lineWidth = s * 0.15;
+        
+        // 左の穴
+        ctx.beginPath();
+        ctx.arc(-s*0.25, s*0.4, s*0.2, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // 右の穴
+        ctx.beginPath();
+        ctx.arc(s*0.25, s*0.4, s*0.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 刃 (銀色)
+        ctx.fillStyle = '#C0C0C0';
+        ctx.beginPath();
+        // 左刃
+        ctx.moveTo(-s*0.25, s*0.2); 
+        ctx.lineTo(0, -s*0.6); // 先端
+        ctx.lineTo(s*0.05, s*0.2);
+        // 右刃
+        ctx.moveTo(s*0.25, s*0.2);
+        ctx.lineTo(0, -s*0.6); // 先端
+        ctx.lineTo(-s*0.05, s*0.2);
+        ctx.fill();
+
+        // 支点
+        ctx.fillStyle = '#666';
+        ctx.beginPath();
+        ctx.arc(0, 0, s*0.05, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.restore();
+        
     } else if (type === 3) { // Pipe
         ctx.fillStyle = COLORS.pipe;
         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
@@ -562,7 +599,7 @@ function updatePhysics() {
              if (!level.map[tile.x] || level.map[tile.x][tile.y] === undefined) return true;
              
              const type = level.map[tile.x][tile.y];
-             if (type === 2) { // ? Block (Lucky Block)
+             if (type === 2) { // Scissors Item (Lucky Block)
                  level.map[tile.x][tile.y] = 0; // Destroy block
                  gameState.score += 50; // Bonus score
                  document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
