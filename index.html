@@ -193,7 +193,8 @@ let gameState = {
     isRunning: false,
     score: 0,
     time: 0,
-    cameraX: 0
+    cameraX: 0,
+    offsetY: 0 // 画面上下位置調整用
 };
 
 // Inputs
@@ -212,18 +213,29 @@ function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // 変更点：さらに視野を広く（キャラを小さく）するために分母を大きくしました
-    // 画面幅の 1/16 を1ブロックのサイズにします。
-    // これにより、画面内に横方向で16ブロック以上見えるようになり、敵の発見が早くなります。
-    TILE_SIZE = Math.floor(canvas.width / 16);
+    // サイズ調整：1/16だと小さい、1/14だと大きい -> 1/15 に設定
+    TILE_SIZE = Math.floor(canvas.width / 15);
 
-    // ただし、極端に小さくなりすぎないように制限
+    // 下限設定
     if (TILE_SIZE < 20) TILE_SIZE = 20;
 
     // パラメータの再調整
-    GRAVITY = TILE_SIZE * 0.045;      // 重力感調整
-    JUMP_FORCE = -(TILE_SIZE * 0.75); // ジャンプ力調整
-    MOVE_SPEED = TILE_SIZE * 0.13;    // 移動速度（遊びやすい速度に）
+    GRAVITY = TILE_SIZE * 0.045;
+    JUMP_FORCE = -(TILE_SIZE * 0.75);
+    MOVE_SPEED = TILE_SIZE * 0.13;
+
+    // 地面位置の調整（無駄な空白の削除）
+    // マップの高さは15ブロック分 (Levelクラス生成ロジック参照)
+    const mapTotalHeight = 15 * TILE_SIZE;
+    
+    // 画面の高さからマップの高さを引いた分をオフセットにする（下端合わせ）
+    // これにより、地面が画面下部に配置され、上部が空になる
+    gameState.offsetY = canvas.height - mapTotalHeight;
+    
+    // もし画面の方が狭い場合（横持ちなど）でも、地面（下から5ブロック）が見えるように
+    // 下端合わせにしておけば基本的にはOK
+    // 微調整: 少しだけ浮かせる（UIとかぶらないように）
+    // gameState.offsetY -= 10; 
 }
 window.addEventListener('resize', resize);
 resize();
@@ -384,8 +396,8 @@ function drawBackground(ctx) {
     };
 
     const offset = gameState.cameraX * 0.2;
-    // 雲もキャラに合わせて少し小さく
-    const s = 0.7; 
+    // 雲のサイズも少し調整
+    const s = 0.75; 
     cloud(200 - offset % (canvas.width + 400), 100, 0.8 * s);
     cloud(800 - offset % (canvas.width + 400), 150, 1.0 * s);
     cloud(1400 - offset % (canvas.width + 400), 80, 0.6 * s);
@@ -399,7 +411,7 @@ class Level {
         this.map = [];
         this.enemies = [];
         this.width = 300; // ステージを長く
-        this.height = 12;
+        this.height = 15; // 描画ループに合わせて15に修正（論理的には）
         this.generate();
     }
 
@@ -437,8 +449,7 @@ class Level {
             }
         }
 
-        // 敵の配置調整
-        // 最初の敵を少し後ろにずらしました (25 -> 35)
+        // 敵の配置
         const enemyPositions = [35, 60, 85, 130, 180, 220]; 
         
         enemyPositions.forEach(posX => {
@@ -446,7 +457,7 @@ class Level {
                  x: posX * TILE_SIZE, 
                  y: 0, 
                  active: true, 
-                 vx: -0.7 // 敵の速度もさらに少し遅くして反応しやすく
+                 vx: -0.7
              });
         });
     }
@@ -598,14 +609,13 @@ function updatePhysics() {
     if (player.x < 0) player.x = 0;
     if (player.y > canvas.height + 100) die();
 
-    // Camera: 左寄りに配置（画面幅の20%の位置）して右側視界確保
     const targetCamX = player.x - canvas.width * 0.2;
     gameState.cameraX += (targetCamX - gameState.cameraX) * 0.1;
     if (gameState.cameraX < 0) gameState.cameraX = 0;
 
     level.enemies.forEach(e => {
         if(!e.active) return;
-        const hitMargin = TILE_SIZE * 0.25; // 当たり判定をさらに少し甘く
+        const hitMargin = TILE_SIZE * 0.25;
         
         if (player.x + hitMargin < e.x + TILE_SIZE - hitMargin &&
             player.x + player.w - hitMargin > e.x + hitMargin &&
@@ -642,11 +652,19 @@ function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     drawBackground(ctx);
+
+    // 画面全体を下寄せにする（空白削除）
+    ctx.save();
+    ctx.translate(0, gameState.offsetY);
+
     updatePhysics();
     level.update();
     level.draw(ctx, frameCount);
     drawPlayer(ctx, player.x - gameState.cameraX, player.y, player.dir, frameCount);
     
+    ctx.restore();
+
+    // UIはオフセットの影響を受けない位置に描画
     if (touchState.active) {
         ctx.beginPath();
         ctx.strokeStyle = 'rgba(255,255,255,0.5)';
