@@ -134,6 +134,21 @@ canvas {
   color: #2c2c2c;
 }
 
+.overlay-video {
+  width: 100%;
+  border-radius: 24px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 3px solid #1f2d40;
+  background: #000;
+}
+
+.overlay-video video {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+}
+
 .overlay-caption {
   font-size: 14px;
   letter-spacing: 0.3em;
@@ -262,6 +277,9 @@ canvas {
   <div id="start-screen">
     <div class="overlay-card">
       <p class="overlay-caption">ぴょんぴょんSATOSHI</p>
+      <div class="overlay-video" id="overlay-video">
+        <video src="assets/intro.mov" autoplay muted loop playsinline></video>
+      </div>
       <div class="overlay-scene" id="overlay-scene">
         <div class="overlay-scene-sky">
           <span class="overlay-scene-moon">☾</span>
@@ -307,6 +325,7 @@ const ctx = canvas.getContext('2d');
 const startScreenEl = document.getElementById('start-screen');
 const overlayMessageEl = document.getElementById('overlay-message');
 const overlayScene = document.getElementById('overlay-scene');
+const overlayVideo = document.getElementById('overlay-video');
 const overlayScorePanel = document.getElementById('overlay-score-panel');
 const overlayScoreValue = document.getElementById('overlay-score-value');
 const overlaySubtextEl = document.getElementById('overlay-subtext');
@@ -722,6 +741,7 @@ let frameCount = 0;
 function setOverlayState(state, scoreValue = 0) {
   if (state === 'start') {
     overlayScene.style.display = 'block';
+    overlayVideo.style.display = 'block';
     overlayMessageEl.innerText = 'DaB GAME';
     overlaySubtextEl.innerText = '';
     overlaySubtextEl.style.display = 'none';
@@ -729,6 +749,7 @@ function setOverlayState(state, scoreValue = 0) {
     startBtn.innerText = 'START!!';
   } else if (state === 'gameover') {
     overlayScene.style.display = 'none';
+    overlayVideo.style.display = 'none';
     overlayMessageEl.innerText = '何を言っているのか分かりません';
     overlaySubtextEl.innerText = '';
     overlaySubtextEl.style.display = 'none';
