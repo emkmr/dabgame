@@ -264,6 +264,20 @@ canvas {
   font-size: 14px;
   color: rgba(33, 33, 33, 0.8);
   margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.overlay-subtext-text {
+  font-size: 14px;
+}
+
+.overlay-subtext-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 </style>
 </head>
@@ -748,17 +762,17 @@ function setOverlayState(state, scoreValue = 0) {
     overlayVideo.style.display = 'block';
     overlayMessageEl.innerText = '';
     overlayMessageEl.style.display = 'none';
-    overlaySubtextEl.innerText = '';
+    overlaySubtextEl.innerHTML = '';
     overlaySubtextEl.style.display = 'none';
     overlayScorePanel.classList.remove('visible');
     startBtn.innerText = 'START!';
   } else if (state === 'gameover') {
     overlayScene.style.display = 'none';
     overlayVideo.style.display = 'none';
-    overlayMessageEl.innerText = '何を言っているのか分かりません';
+    overlayMessageEl.innerText = 'GAME OVER';
     overlayMessageEl.style.display = 'block';
-    overlaySubtextEl.innerText = '';
-    overlaySubtextEl.style.display = 'none';
+    overlaySubtextEl.innerHTML = '<img src="assets/start_character.png" alt="character" class="overlay-subtext-icon"><span class="overlay-subtext-text">何を言っているのか分かりません</span>';
+    overlaySubtextEl.style.display = 'flex';
     overlayScoreValue.innerText = scoreValue;
     overlayScorePanel.classList.add('visible');
     startBtn.innerText = 'もう一度チャレンジする';
