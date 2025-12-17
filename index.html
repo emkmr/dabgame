@@ -809,6 +809,7 @@ function updatePhysics() {
   }
 
   player.vy += GRAVITY;
+  const prevX = player.x;
   player.x += player.vx;
   player.y += player.vy;
 
@@ -849,19 +850,28 @@ function updatePhysics() {
   const br = getTile(player.x + player.w, player.y + player.h - 5);
 
   const checkHit = (tile) => {
-    if (level.isSolid(tile.x, tile.y)) {
-      if (!level.map[tile.x]) return true; // 安全策
-      const type = level.map[tile.x][tile.y];
+    if (!level.isSolid(tile.x, tile.y)) return false;
 
-      if (type === 2) {
-        level.map[tile.x][tile.y] = 0;
-        gameState.score += 50;
-        document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
-        return false;
-      }
-      return true;
+    const column = level.map[tile.x];
+    if (!column) return false;
+
+    const type = column[tile.y];
+    if (type === undefined || type === 0) return false;
+
+    if (type === 2) {
+      column[tile.y] = 0;
+      gameState.score += 50;
+      document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
+      return false;
     }
-    return false;
+
+    if (type === 1 || type === 3) {
+      // 地面・土管はゲームオーバーにしないが元の位置へ戻す
+      player.x = prevX;
+      return false;
+    }
+
+    return true;
   };
 
   const hitTop = checkHit(tr);
@@ -871,8 +881,9 @@ function updatePhysics() {
     die();
   }
 
-  // 落下死
-  if (player.y > view.h + 100) die();
+  // 落下死: マップ底の少し下まで落ちたら死亡
+  const abyssY = ROWS * TILE_SIZE + TILE_SIZE * 2;
+  if (player.y > abyssY) die();
 
   // カメラ追従
   const targetCamX = player.x - view.w * 0.2;
@@ -905,6 +916,7 @@ function die() {
 
   player.dead = true;
   player.vy = JUMP_FORCE;
+  player.vx = 0;
   const finalScore = gameState.score;
 
   setTimeout(() => {
