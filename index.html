@@ -744,7 +744,8 @@ class Level {
     if (x < 0) return true;
     if (!this.map[x]) return false;
     if (y < 0 || y >= ROWS) return false;
-    return this.map[x][y] !== undefined && this.map[x][y] !== 0;
+    const tile = this.map[x][y];
+    return tile !== undefined && tile !== 0 && tile !== 2;
   }
 }
 
@@ -755,6 +756,30 @@ let player = {
 let level;
 let animationId;
 let frameCount = 0;
+
+function collectScissorAt(tileX, tileY) {
+  if (!level) return false;
+  const column = level.map[tileX];
+  if (!column) return false;
+  if (column[tileY] !== 2) return false;
+  column[tileY] = 0;
+  gameState.score += 50;
+  document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
+  return true;
+}
+
+function collectScissorsInBounds() {
+  const left = Math.floor((player.x + 4) / TILE_SIZE);
+  const right = Math.floor((player.x + player.w - 4) / TILE_SIZE);
+  const top = Math.floor((player.y + 4) / TILE_SIZE);
+  const bottom = Math.floor((player.y + player.h - 4) / TILE_SIZE);
+
+  for (let x = left; x <= right; x++) {
+    for (let y = top; y <= bottom; y++) {
+      collectScissorAt(x, y);
+    }
+  }
+}
 
 function setOverlayState(state, scoreValue = 0) {
   if (state === 'start') {
@@ -864,8 +889,6 @@ function updatePhysics() {
   const br = getTile(player.x + player.w, player.y + player.h - 5);
 
   const checkHit = (tile) => {
-    if (!level.isSolid(tile.x, tile.y)) return false;
-
     const column = level.map[tile.x];
     if (!column) return false;
 
@@ -873,11 +896,11 @@ function updatePhysics() {
     if (type === undefined || type === 0) return false;
 
     if (type === 2) {
-      column[tile.y] = 0;
-      gameState.score += 50;
-      document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
+      collectScissorAt(tile.x, tile.y);
       return false;
     }
+
+    if (!level.isSolid(tile.x, tile.y)) return false;
 
     if (type === 1 || type === 3) {
       // 地面・土管はゲームオーバーにしないが元の位置へ戻す
@@ -894,6 +917,8 @@ function updatePhysics() {
   if (hitTop || hitBottom) {
     die();
   }
+
+  collectScissorsInBounds();
 
   // 落下死: マップ底の少し下まで落ちたら死亡
   const abyssY = ROWS * TILE_SIZE + TILE_SIZE * 2;
