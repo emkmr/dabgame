@@ -361,6 +361,8 @@ const COLORS = {
 
 // ★ マップの縦マス数（y=0..14 と一致）
 const ROWS = 15;
+const SKULL_SCORE = 150;
+const SKULL_JUMP_MULTIPLIER = 1.4;
 
 // 画面（CSSピクセル基準）
 const view = { w: 0, h: 0, dpr: 1 };
@@ -548,6 +550,34 @@ function drawBlock(ctx, x, y, type) {
     ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
     ctx.fillStyle = COLORS.pipeDark;
     ctx.fillRect(x + TILE_SIZE*0.1, y, TILE_SIZE*0.2, TILE_SIZE);
+  } else if (type === 4) { // Skull
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#f9f6f2';
+    const skullRadius = TILE_SIZE * 0.25;
+    ctx.beginPath();
+    ctx.arc(TILE_SIZE / 2, TILE_SIZE * 0.35, skullRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#2f2f2f';
+    const eyeSize = skullRadius * 0.6;
+    const eyeY = TILE_SIZE * 0.3;
+    ctx.fillRect(TILE_SIZE * 0.5 - skullRadius * 0.9, eyeY, eyeSize, eyeSize);
+    ctx.fillRect(TILE_SIZE * 0.5 + skullRadius * 0.3, eyeY, eyeSize, eyeSize);
+    ctx.fillRect((TILE_SIZE - skullRadius * 0.6) / 2, TILE_SIZE * 0.47, skullRadius * 0.6, skullRadius * 0.2);
+    ctx.lineCap = 'round';
+    ctx.lineWidth = TILE_SIZE * 0.07;
+    ctx.strokeStyle = '#f9f6f2';
+    ctx.beginPath();
+    ctx.moveTo(TILE_SIZE * 0.25, TILE_SIZE * 0.75);
+    ctx.lineTo(TILE_SIZE * 0.45, TILE_SIZE * 0.95);
+    ctx.moveTo(TILE_SIZE * 0.45, TILE_SIZE * 0.75);
+    ctx.lineTo(TILE_SIZE * 0.25, TILE_SIZE * 0.95);
+    ctx.moveTo(TILE_SIZE * 0.55, TILE_SIZE * 0.75);
+    ctx.lineTo(TILE_SIZE * 0.75, TILE_SIZE * 0.95);
+    ctx.moveTo(TILE_SIZE * 0.75, TILE_SIZE * 0.75);
+    ctx.lineTo(TILE_SIZE * 0.55, TILE_SIZE * 0.95);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -703,6 +733,8 @@ class Level {
     if (Math.random() < 0.05) {
       // 地上の障害物
       this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2;
+    } else if (Math.random() < 0.03) {
+      this.map[x][groundY-1] = 4;
     } else if (Math.random() < 0.05) {
       // 空中の足場
       this.map[x][groundY-4] = 2;
@@ -745,7 +777,7 @@ class Level {
     if (!this.map[x]) return false;
     if (y < 0 || y >= ROWS) return false;
     const tile = this.map[x][y];
-    return tile !== undefined && tile !== 0 && tile !== 2;
+    return tile !== undefined && tile !== 0 && tile !== 2 && tile !== 4;
   }
 }
 
@@ -777,6 +809,38 @@ function collectScissorsInBounds() {
   for (let x = left; x <= right; x++) {
     for (let y = top; y <= bottom; y++) {
       collectScissorAt(x, y);
+    }
+  }
+}
+
+function handleSkullAt(tileX, tileY, prevBottom) {
+  if (!level || player.dead) return;
+  const column = level.map[tileX];
+  if (!column) return;
+  if (column[tileY] !== 4) return;
+
+  const tileTop = tileY * TILE_SIZE;
+  if (player.vy >= 0 && prevBottom <= tileTop + TILE_SIZE * 0.2) {
+    column[tileY] = 0;
+    gameState.score += SKULL_SCORE;
+    document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
+    player.vy = JUMP_FORCE * SKULL_JUMP_MULTIPLIER;
+  } else {
+    die();
+  }
+}
+
+function handleSkullsInBounds(prevBottom) {
+  if (player.dead) return;
+  const left = Math.floor((player.x + 4) / TILE_SIZE);
+  const right = Math.floor((player.x + player.w - 4) / TILE_SIZE);
+  const top = Math.floor((player.y + 4) / TILE_SIZE);
+  const bottom = Math.floor((player.y + player.h - 4) / TILE_SIZE);
+
+  for (let x = left; x <= right; x++) {
+    for (let y = top; y <= bottom; y++) {
+      handleSkullAt(x, y, prevBottom);
+      if (player.dead) return;
     }
   }
 }
@@ -849,6 +913,7 @@ function updatePhysics() {
 
   player.vy += GRAVITY;
   const prevX = player.x;
+  const prevY = player.y;
   player.x += player.vx;
   player.y += player.vy;
 
@@ -918,6 +983,8 @@ function updatePhysics() {
     die();
   }
 
+  const prevBottom = prevY + player.h;
+  handleSkullsInBounds(prevBottom);
   collectScissorsInBounds();
 
   // 落下死: マップ底の少し下まで落ちたら死亡
