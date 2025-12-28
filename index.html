@@ -364,6 +364,7 @@ const ROWS = 15;
 const SKULL_SCORE = 150;
 const SKULL_JUMP_MULTIPLIER = 1.4;
 const INVINCIBLE_DURATION = 480;
+const BUBBLE_DURATION = 300;
 const SKY_DOG_INTERVAL = { min: 300, max: 640 };
 
 const SKY_DOG_CONFIG = {
@@ -441,6 +442,62 @@ resize();
 /**
  * Drawing Functions
  */
+function drawInvincibleBubbles(ctx, w, h, frame) {
+  const bubbleCount = 28;
+  const baseOrbit = Math.min(w, h) * 1.05;
+  const time = frame * 0.035;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  for (let i = 0; i < bubbleCount; i++) {
+    const t = i / bubbleCount;
+    const angle = t * Math.PI * 2 + time * 1.1 + Math.sin(time + i) * 0.18;
+    const wobble = Math.sin(time * 1.6 + i) * w * 0.08;
+    const orbit = baseOrbit + wobble;
+    const bubbleR = Math.max(5, w * (0.06 + (i % 6) * 0.012));
+    const bx = w / 2 + Math.cos(angle) * orbit;
+    const by = h * 0.55 + Math.sin(angle) * orbit * 0.55;
+
+    const gradient = ctx.createRadialGradient(
+      bx - bubbleR * 0.35,
+      by - bubbleR * 0.35,
+      bubbleR * 0.2,
+      bx,
+      by,
+      bubbleR
+    );
+    gradient.addColorStop(0, 'rgba(255,255,255,0.95)');
+    gradient.addColorStop(0.5, 'rgba(173,226,255,0.55)');
+    gradient.addColorStop(1, 'rgba(255,255,255,0.25)');
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(bx, by, bubbleR, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = Math.max(1, w * 0.02);
+    ctx.beginPath();
+    ctx.arc(bx + bubbleR * 0.2, by - bubbleR * 0.2, bubbleR * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  for (let j = 0; j < 12; j++) {
+    const angle = time * 1.7 + j * 0.6;
+    const orbit = w * 0.35 + Math.sin(time * 2 + j) * w * 0.06;
+    const bubbleR = Math.max(4, w * 0.04);
+    const bx = w / 2 + Math.cos(angle) * orbit;
+    const by = h * 0.55 + Math.sin(angle) * orbit * 0.45;
+    ctx.fillStyle = 'rgba(220,245,255,0.55)';
+    ctx.beginPath();
+    ctx.arc(bx, by, bubbleR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
 function drawPlayer(ctx, x, y, frame) {
   const w = TILE_SIZE * 0.9;
   const h = TILE_SIZE * 1.5;
@@ -450,37 +507,8 @@ function drawPlayer(ctx, x, y, frame) {
 
   const ps = w / 12;
 
-  if (isInvincible()) {
-    ctx.save();
-    const auraRadiusX = w * 0.9;
-    const auraRadiusY = h * 0.8;
-    const gradient = ctx.createRadialGradient(
-      w / 2,
-      h / 2,
-      w * 0.2,
-      w / 2,
-      h / 2,
-      Math.max(auraRadiusX, auraRadiusY)
-    );
-    gradient.addColorStop(0, 'rgba(255,255,255,0.7)');
-    gradient.addColorStop(0.5, 'rgba(125,154,255,0.5)');
-    gradient.addColorStop(1, 'rgba(191,98,255,0.35)');
-    ctx.globalAlpha = 0.85;
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.ellipse(
-      w / 2,
-      h * 0.6,
-      auraRadiusX,
-      auraRadiusY,
-      frame * 0.05,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.restore();
+  if (isInvincible() && bubbleTimer > 0) {
+    drawInvincibleBubbles(ctx, w, h, frame);
   }
 
   const c = {
@@ -727,8 +755,6 @@ class Level {
     this.enemies = [];
     this.generatedX = 0;
     this.groundY = 10;
-    this.gapCooldown = 0;
-    this.gapRemaining = 0;
 
     // 初回生成範囲を広く取る（画面幅の3倍）
     this.updateMap(view.w * 3);
@@ -767,36 +793,6 @@ class Level {
     if (x < 30) {
       for(let y=this.groundY; y<ROWS; y++) this.map[x][y] = 1;
       return;
-    }
-
-    // クールダウン処理（穴の直後）
-    if (this.gapCooldown > 0) {
-      this.gapCooldown--;
-      for(let y=this.groundY; y<ROWS; y++) this.map[x][y] = 1;
-
-      // クールダウン中もアイテム等は出してOK
-      this.generateObjects(x, this.groundY);
-      return;
-    }
-
-    // 新しい穴の生成判定
-    if (this.gapRemaining <= 0 && Math.random() < 0.1) {
-      const gapWidth = Math.floor(Math.random() * 2) + 2; // 2~3マス
-      this.gapRemaining = gapWidth;
-      this.gapCooldown = gapWidth + 5; // ジャンプ後着地スペース確保
-
-      // 穴の向こう側の高さをここで決めておく
-      if (Math.random() < 0.5) {
-        const diff = Math.floor(Math.random() * 3) - 1;
-        this.groundY += diff;
-        this.groundY = Math.max(7, Math.min(13, this.groundY));
-      }
-    }
-
-    // 穴生成中
-    if (this.gapRemaining > 0) {
-      this.gapRemaining--;
-      return; // 地面生成しない
     }
 
     // 地面の高さをたまに変える
@@ -874,6 +870,7 @@ let frameCount = 0;
 let skyDogs = [];
 let skyDogTimer = 0;
 let invincibleTimer = 0;
+let bubbleTimer = 0;
 
 function collectScissorAt(tileX, tileY) {
   if (!level) return false;
@@ -933,6 +930,7 @@ function handleSkullsInBounds(prevBottom) {
 
 function activateInvincibility() {
   invincibleTimer = INVINCIBLE_DURATION;
+  bubbleTimer = BUBBLE_DURATION;
 }
 
 function isInvincible() {
@@ -1033,6 +1031,7 @@ function init() {
   level = new Level();
   resetSkyDogs();
   invincibleTimer = 0;
+  bubbleTimer = 0;
   gameState.score = 0;
   gameState.distance = 0;
   gameState.cameraX = 0;
@@ -1052,6 +1051,7 @@ function updatePhysics() {
   }
 
   if (invincibleTimer > 0) invincibleTimer--;
+  if (bubbleTimer > 0) bubbleTimer--;
 
   // マップ更新: 画面外も余裕を持って生成
   level.updateMap(player.x + view.w);
