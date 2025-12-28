@@ -365,8 +365,8 @@ const SKULL_SCORE = 150;
 const SKULL_JUMP_MULTIPLIER = 1.4;
 const INVINCIBLE_DURATION = 480;
 const BUBBLE_DURATION = 300;
-const HEART_SCORE = 200;
-const STAR_SCORE = 300;
+const HEART_SCORE = 20;
+const STAR_SCORE = 20;
 const SKY_DOG_INTERVAL = { min: 300, max: 640 };
 
 const SKY_DOG_CONFIG = {
@@ -461,6 +461,21 @@ function drawInvincibleStars(ctx, w, h, frame) {
     const sx = w / 2 + Math.cos(angle) * orbit;
     const sy = h * 0.55 + Math.sin(angle) * orbit * 0.55;
     const pulse = 1 + Math.sin(time * 2 + i) * 0.08;
+
+    drawStar(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame);
+  }
+
+  const outerCount = 18;
+  const outerOrbit = baseOrbit * 1.35;
+  for (let k = 0; k < outerCount; k++) {
+    const t = k / outerCount;
+    const angle = t * Math.PI * 2 - time * 0.9 + Math.cos(time + k) * 0.2;
+    const wobble = Math.cos(time * 1.4 + k) * w * 0.1;
+    const orbit = outerOrbit + wobble;
+    const size = Math.max(6, w * (0.08 + (k % 5) * 0.012));
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.58;
+    const pulse = 1 + Math.sin(time * 1.6 + k) * 0.06;
 
     drawStar(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame);
   }
@@ -886,7 +901,7 @@ function collectScissorAt(tileX, tileY) {
   if (!column) return false;
   if (column[tileY] !== 2) return false;
   column[tileY] = 0;
-  gameState.score += 50;
+  gameState.score += 10;
   document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
   return true;
 }
@@ -915,9 +930,12 @@ function handleQuestionBlock(tileX, tileY) {
   const itemY = tileY * TILE_SIZE - TILE_SIZE * 0.65;
   if (Math.random() < 0.5) {
     spawnHeart(itemX, itemY);
+    gameState.score += HEART_SCORE;
   } else {
     spawnStar(itemX, itemY);
+    gameState.score += STAR_SCORE;
   }
+  document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
 }
 
 function handleSkullAt(tileX, tileY, prevBottom) {
@@ -1053,8 +1071,6 @@ function updateHearts() {
       playerWorldY + playerWorldH > hy
     ) {
       heart.collected = true;
-      gameState.score += HEART_SCORE;
-      document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
     }
   });
 
@@ -1098,8 +1114,6 @@ function updateStars() {
       playerWorldY + playerWorldH > sy
     ) {
       star.collected = true;
-      gameState.score += STAR_SCORE;
-      document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
     }
   });
 
