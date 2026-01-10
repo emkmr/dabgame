@@ -1302,6 +1302,7 @@ function updatePhysics() {
   // 衝突判定（右側）
   const tr = getTile(player.x + player.w, player.y + 5);
   const br = getTile(player.x + player.w, player.y + player.h - 5);
+  const pr = getTile(player.x + player.w, player.y + player.h - 1);
 
   const checkHit = (tile) => {
     const column = level.map[tile.x];
@@ -1328,6 +1329,11 @@ function updatePhysics() {
 
   const hitTop = checkHit(tr);
   const hitBottom = checkHit(br);
+  const pushOut = checkHit(pr);
+
+  if (pushOut) {
+    player.x = prevX - 1;
+  }
 
   if ((hitTop || hitBottom) && !isInvincible()) {
     die();
