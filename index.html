@@ -720,42 +720,66 @@ function drawBackground(ctx) {
 }
 
 function drawSkyDog(ctx, dog, frame) {
-  const bodyW = dog.size * 1.6;
-  const bodyH = dog.size * 0.8;
-  const step = Math.sin((dog.stepOffset ?? 0) + frame * 0.5) * dog.size * 0.12;
+  const px = Math.max(1, Math.floor(dog.size * 0.12));
+  const bodyW = 16 * px;
+  const bodyH = 9 * px;
+  const step = Math.sin((dog.stepOffset ?? 0) + frame * 0.5) * px * 2;
+
+  const colors = {
+    outline: '#0b0b0b',
+    fur: '#c88a3a',
+    furDark: '#a56a2a',
+    ear: '#4a3320',
+    muzzle: '#2b221b',
+    highlight: '#e4b46a'
+  };
+
+  const p = (x, y, w, h, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(x * px, y * px, w * px, h * px);
+  };
 
   ctx.save();
   ctx.translate(dog.x + bodyW, dog.y);
   ctx.scale(-1, 1);
 
-  ctx.fillStyle = '#6b4b2a';
-  ctx.fillRect(0, bodyH * 0.2, bodyW, bodyH * 0.6);
+  // Outline base removed to avoid dark backdrop
 
-  // head
-  const headW = dog.size * 0.7;
-  ctx.fillRect(bodyW - headW * 0.5, 0, headW, bodyH * 0.75);
+  // Body
+  p(2, 3, 9, 5, colors.fur);
+  p(2, 3, 9, 1, colors.highlight);
+  p(2, 7, 9, 1, colors.furDark);
 
-  // ears
-  ctx.fillRect(bodyW - headW * 0.2, -dog.size * 0.2, dog.size * 0.2, dog.size * 0.3);
-  ctx.fillRect(bodyW - headW * 0.8, -dog.size * 0.2, dog.size * 0.2, dog.size * 0.3);
+  // Neck + head
+  p(10, 3, 2, 3, colors.fur);
+  p(11, 1, 5, 5, colors.fur);
+  p(11, 1, 5, 1, colors.highlight);
 
-  // legs
-  const legW = dog.size * 0.25;
-  ctx.fillRect(bodyW * 0.1, bodyH * 0.8 + step, legW, dog.size * 0.3 - step * 0.5);
-  ctx.fillRect(bodyW * 0.9 - legW, bodyH * 0.8 - step, legW, dog.size * 0.3 + step * 0.5);
+  // Ear + cheek
+  p(12, 0, 2, 2, colors.ear);
+  p(12, 2, 1, 1, colors.outline);
 
-  // tail
-  ctx.beginPath();
-  ctx.strokeStyle = '#6b4b2a';
-  ctx.lineWidth = dog.size * 0.15;
-  ctx.lineCap = 'round';
-  ctx.moveTo(bodyW * 0.05, bodyH * 0.4);
-  ctx.lineTo(-dog.size * 0.3, bodyH * 0.2);
-  ctx.stroke();
+  // Muzzle + nose
+  p(14, 3, 3, 2, colors.muzzle);
+  p(16, 4, 1, 1, colors.outline);
 
-  // collar accent
-  ctx.fillStyle = '#f5d742';
-  ctx.fillRect(bodyW - headW * 0.55, bodyH * 0.15, headW * 0.9, dog.size * 0.12);
+  // Eye
+  p(13, 2, 1, 1, colors.outline);
+
+  // Tail curl
+  const tailWag = Math.sin((dog.stepOffset ?? 0) + frame * 0.6) > 0 ? 1 : 0;
+  p(0 + tailWag, 2, 3, 2, colors.furDark);
+  p(-1 + tailWag, 2, 1, 1, colors.furDark);
+  p(1 + tailWag, 1, 1, 1, colors.furDark);
+
+  // Legs (pixel + step)
+  p(4, 8 + (step > 0 ? 1 : 0), 2, 3, colors.furDark);
+  p(11, 8 + (step < 0 ? 1 : 0), 2, 3, colors.furDark);
+  p(4, 11 + (step > 0 ? 1 : 0), 2, 1, colors.furDark);
+  p(11, 11 + (step < 0 ? 1 : 0), 2, 1, colors.furDark);
+
+  // Collar accent
+  p(11, 4, 4, 1, '#f5d742');
 
   ctx.restore();
 }
