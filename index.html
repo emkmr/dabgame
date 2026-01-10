@@ -367,7 +367,8 @@ const INVINCIBLE_DURATION = 480;
 const BUBBLE_DURATION = 300;
 const HEART_SCORE = 20;
 const STAR_SCORE = 20;
-const SKY_DOG_INTERVAL = { min: 300, max: 640 };
+const SKY_DOG_CHANCE = 0.008;
+const SKY_DOG_COOLDOWN_FRAMES = 360;
 
 const SKY_DOG_CONFIG = {
   baseSpeed: () => Math.max(1.8, view.w * 0.0025),
@@ -718,9 +719,10 @@ function drawBackground(ctx) {
   }
 }
 
-function drawSkyDog(ctx, dog) {
+function drawSkyDog(ctx, dog, frame) {
   const bodyW = dog.size * 1.6;
   const bodyH = dog.size * 0.8;
+  const step = Math.sin((dog.stepOffset ?? 0) + frame * 0.5) * dog.size * 0.12;
 
   ctx.save();
   ctx.translate(dog.x + bodyW, dog.y);
@@ -739,8 +741,8 @@ function drawSkyDog(ctx, dog) {
 
   // legs
   const legW = dog.size * 0.25;
-  ctx.fillRect(bodyW * 0.1, bodyH * 0.8, legW, dog.size * 0.3);
-  ctx.fillRect(bodyW * 0.9 - legW, bodyH * 0.8, legW, dog.size * 0.3);
+  ctx.fillRect(bodyW * 0.1, bodyH * 0.8 + step, legW, dog.size * 0.3 - step * 0.5);
+  ctx.fillRect(bodyW * 0.9 - legW, bodyH * 0.8 - step, legW, dog.size * 0.3 + step * 0.5);
 
   // tail
   ctx.beginPath();
@@ -892,7 +894,7 @@ let level;
 let animationId;
 let frameCount = 0;
 let skyDogs = [];
-let skyDogTimer = 0;
+let skyDogCooldown = 0;
 let invincibleTimer = 0;
 let bubbleTimer = 0;
 let hearts = [];
@@ -982,14 +984,9 @@ function isInvincible() {
   return invincibleTimer > 0;
 }
 
-function getSkyDogInterval() {
-  const diff = SKY_DOG_INTERVAL.max - SKY_DOG_INTERVAL.min;
-  return SKY_DOG_INTERVAL.min + Math.floor(Math.random() * diff);
-}
-
 function resetSkyDogs() {
   skyDogs = [];
-  skyDogTimer = getSkyDogInterval();
+  skyDogCooldown = SKY_DOG_COOLDOWN_FRAMES;
 }
 
 function spawnSkyDog() {
@@ -1000,15 +997,22 @@ function spawnSkyDog() {
     x: view.w + size * 2,
     y,
     size,
-    speed: SKY_DOG_CONFIG.baseSpeed() * (0.9 + Math.random() * 0.3)
+    speed: SKY_DOG_CONFIG.baseSpeed() * (0.9 + Math.random() * 0.3),
+    stepOffset: Math.random() * Math.PI * 2
   });
 }
 
 function updateSkyDogs() {
-  skyDogTimer--;
-  if (skyDogTimer <= 0) {
-    spawnSkyDog();
-    skyDogTimer = getSkyDogInterval();
+  if (invincibleTimer > 0) {
+    if (skyDogCooldown < SKY_DOG_COOLDOWN_FRAMES) {
+      skyDogCooldown = SKY_DOG_COOLDOWN_FRAMES;
+    }
+  } else {
+    if (skyDogCooldown > 0) skyDogCooldown--;
+    if (skyDogCooldown <= 0 && Math.random() < SKY_DOG_CHANCE) {
+      spawnSkyDog();
+      skyDogCooldown = SKY_DOG_COOLDOWN_FRAMES;
+    }
   }
   const playerScreenX = player.x - gameState.cameraX;
   const playerScreenY = player.y;
@@ -1017,6 +1021,7 @@ function updateSkyDogs() {
 
   skyDogs.forEach(dog => {
     dog.x -= dog.speed;
+    dog.stepOffset = (dog.stepOffset ?? 0) + 0.1;
     if (dog.collected) return;
     const dogW = dog.size * 1.6;
     const dogH = dog.size * 1.2;
@@ -1034,7 +1039,7 @@ function updateSkyDogs() {
 }
 
 function drawSkyDogs(ctx) {
-  skyDogs.forEach(dog => drawSkyDog(ctx, dog));
+  skyDogs.forEach(dog => drawSkyDog(ctx, dog, frameCount));
 }
 
 function spawnHeart(x, y) {
