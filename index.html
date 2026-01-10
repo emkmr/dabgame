@@ -1326,41 +1326,36 @@ function updatePhysics() {
   // 衝突判定（右側）
   const tr = getTile(player.x + player.w, player.y + 5);
   const br = getTile(player.x + player.w, player.y + player.h - 5);
-  const pr = getTile(player.x + player.w, player.y + player.h - 1);
 
-  const checkHit = (tile) => {
+  const isBlockingTile = (tile) => {
     const column = level.map[tile.x];
     if (!column) return false;
-
     const type = column[tile.y];
     if (type === undefined || type === 0) return false;
-
     if (type === 2) {
       collectScissorAt(tile.x, tile.y);
       return false;
     }
-
-    if (!level.isSolid(tile.x, tile.y)) return false;
-
-    if (type === 1 || type === 3 || type === 5 || type === 6) {
-      // 地面・土管はゲームオーバーにしないが元の位置へ戻す
-      player.x = prevX;
-      return false;
-    }
-
-    return true;
+    return type === 1 || type === 3 || type === 5 || type === 6;
   };
 
-  const hitTop = checkHit(tr);
-  const hitBottom = checkHit(br);
-  const pushOut = checkHit(pr);
-
-  if (pushOut) {
-    player.x = prevX - 1;
-  }
-
-  if ((hitTop || hitBottom) && !isInvincible()) {
-    die();
+  if (isBlockingTile(tr) || isBlockingTile(br)) {
+    let stepped = false;
+    if (player.vy >= 0) {
+      const maxStep = Math.floor(TILE_SIZE * 0.45);
+      for (let dy = 1; dy <= maxStep; dy++) {
+        const testTop = getTile(player.x + player.w, player.y - dy + 5);
+        const testBottom = getTile(player.x + player.w, player.y - dy + player.h - 5);
+        if (!isBlockingTile(testTop) && !isBlockingTile(testBottom)) {
+          player.y -= dy;
+          stepped = true;
+          break;
+        }
+      }
+    }
+    if (!stepped) {
+      player.x = prevX;
+    }
   }
 
   const prevBottom = prevY + player.h;
