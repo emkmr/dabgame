@@ -371,6 +371,8 @@ const SKY_DOG_CHANCE = 0.008;
 const SKY_DOG_COOLDOWN_FRAMES = 360;
 const PIPE_PERSON_CHANCE = 0.006;
 const PIPE_PERSON_COOLDOWN_FRAMES = 300;
+const BEER_MUG_COUNT = 48;
+const BEER_DURATION = 120;
 
 const SKY_DOG_CONFIG = {
   baseSpeed: () => Math.max(1.8, view.w * 0.0025),
@@ -923,6 +925,9 @@ let skyDogs = [];
 let skyDogCooldown = 0;
 let pipePeople = [];
 let pipePersonCooldown = 0;
+let pipeCats = [];
+let beerMugs = [];
+let beerTimer = 0;
 let invincibleTimer = 0;
 let bubbleTimer = 0;
 let hearts = [];
@@ -1135,6 +1140,114 @@ function drawPipePerson(ctx, person, frame) {
   ctx.restore();
 }
 
+function drawBeerMug(ctx, mug) {
+  const size = mug.size;
+  const bodyW = size * 0.6;
+  const bodyH = size * 0.8;
+  const foamH = size * 0.22;
+  const handleW = size * 0.2;
+  const handleH = size * 0.45;
+
+  ctx.save();
+  ctx.translate(mug.x, mug.y);
+  ctx.rotate(mug.rot);
+
+  // Mug body
+  ctx.fillStyle = '#f5c542';
+  ctx.fillRect(-bodyW / 2, -bodyH / 2 + foamH * 0.3, bodyW, bodyH);
+  ctx.fillStyle = '#e0a93a';
+  ctx.fillRect(-bodyW / 2, -bodyH / 2 + foamH * 0.3, bodyW, bodyH * 0.18);
+
+  // Foam
+  ctx.fillStyle = '#fff4dc';
+  ctx.fillRect(-bodyW / 2, -bodyH / 2, bodyW, foamH);
+
+  // Handle
+  ctx.fillStyle = '#f5c542';
+  ctx.fillRect(bodyW / 2 - size * 0.02, -handleH / 2, handleW, handleH);
+  ctx.clearRect(bodyW / 2 + handleW * 0.25, -handleH / 2 + handleH * 0.2, handleW * 0.5, handleH * 0.6);
+
+  ctx.restore();
+}
+
+function drawPipeCat(ctx, cat, frame) {
+  const w = TILE_SIZE * 0.7;
+  const h = TILE_SIZE * 0.9;
+  const x = cat.x - gameState.cameraX;
+  const y = cat.y;
+  const ps = w / 10;
+  const tailWag = Math.sin((cat.stepOffset ?? 0) + frame * 0.6) > 0 ? 1 : 0;
+
+  ctx.save();
+  // Face the movement direction (right-to-left)
+  ctx.translate(x + w, y);
+  ctx.scale(-1, 1);
+
+  // Body
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(ps * 1.5, ps * 4, ps * 7, ps * 4);
+
+  // Head
+  ctx.fillRect(ps * 6.5, ps * 2.5, ps * 3, ps * 2.5);
+
+  // Ears
+  ctx.fillRect(ps * 6.3, ps * 1.8, ps * 1, ps * 1);
+  ctx.fillRect(ps * 8.5, ps * 1.8, ps * 1, ps * 1);
+
+  // Tail
+  ctx.fillRect(ps * 0.5 + tailWag, ps * 4.2, ps * 1.4, ps * 0.8);
+  ctx.fillRect(ps * 0.2 + tailWag, ps * 3.6, ps * 0.8, ps * 0.8);
+
+  // Eyes
+  ctx.fillStyle = '#ffd24a';
+  ctx.fillRect(ps * 7.2, ps * 3.2, ps * 0.6, ps * 0.6);
+  ctx.fillRect(ps * 8.4, ps * 3.2, ps * 0.6, ps * 0.6);
+
+  ctx.restore();
+}
+
+function spawnBeerMugs() {
+  beerMugs = [];
+  for (let i = 0; i < BEER_MUG_COUNT; i++) {
+    const size = Math.max(14, TILE_SIZE * (0.35 + Math.random() * 0.45));
+    beerMugs.push({
+      x: Math.random() * view.w,
+      y: Math.random() * view.h,
+      vx: (Math.random() * 2 - 1) * 2.4,
+      vy: (Math.random() * 2 - 1) * 2.4,
+      size,
+      rot: Math.random() * Math.PI * 2,
+      vr: (Math.random() * 2 - 1) * 0.06
+    });
+  }
+  beerTimer = BEER_DURATION;
+}
+
+function updateBeerMugs() {
+  if (beerTimer <= 0) return;
+  beerTimer--;
+
+  beerMugs.forEach(mug => {
+    mug.x += mug.vx;
+    mug.y += mug.vy;
+    mug.rot += mug.vr;
+
+    const margin = mug.size * 0.6;
+    if (mug.x < -margin || mug.x > view.w + margin) mug.vx *= -1;
+    if (mug.y < -margin || mug.y > view.h + margin) mug.vy *= -1;
+  });
+}
+
+function drawBeerMugs(ctx) {
+  if (beerTimer <= 0) return;
+  ctx.save();
+  const fadeIn = Math.min(1, (BEER_DURATION - beerTimer) / 20);
+  const fadeOut = Math.min(1, beerTimer / 20);
+  ctx.globalAlpha = Math.min(fadeIn, fadeOut);
+  beerMugs.forEach(mug => drawBeerMug(ctx, mug));
+  ctx.restore();
+}
+
 function findPipeSpawnCandidate() {
   if (!level) return null;
   const startCol = Math.floor(gameState.cameraX / TILE_SIZE);
@@ -1166,11 +1279,23 @@ function spawnPipePerson() {
   const personH = TILE_SIZE * 1.4;
   const baseY = candidate.y * TILE_SIZE - personH + TILE_SIZE * 0.2;
   const startY = candidate.y * TILE_SIZE + TILE_SIZE * 0.2;
+  const catH = TILE_SIZE * 0.9;
+  const catBaseY = candidate.y * TILE_SIZE - catH + TILE_SIZE * 0.35;
+  const catStartY = candidate.y * TILE_SIZE + TILE_SIZE * 0.35;
   pipePeople.push({
     x: candidate.x * TILE_SIZE + TILE_SIZE * 0.1,
     y: startY,
     baseY,
     startY,
+    popProgress: 0,
+    speed: -MOVE_SPEED * 0.45,
+    stepOffset: Math.random() * Math.PI * 2
+  });
+  pipeCats.push({
+    x: candidate.x * TILE_SIZE + TILE_SIZE * 0.9,
+    y: catStartY,
+    baseY: catBaseY,
+    startY: catStartY,
     popProgress: 0,
     speed: -MOVE_SPEED * 0.45,
     stepOffset: Math.random() * Math.PI * 2
@@ -1186,6 +1311,8 @@ function updatePipePeople() {
     }
   }
 
+  const personW = TILE_SIZE * 0.78;
+  const personH = TILE_SIZE * 1.3;
   pipePeople.forEach(person => {
     if (person.popProgress < 1) {
       person.popProgress = Math.min(1, person.popProgress + 0.08);
@@ -1194,13 +1321,36 @@ function updatePipePeople() {
     } else {
       person.x += person.speed;
     }
+    if (!person.hit &&
+        player.x < person.x + personW &&
+        player.x + player.w > person.x &&
+        player.y < person.y + personH &&
+        player.y + player.h > person.y) {
+      person.hit = true;
+      spawnBeerMugs();
+    }
+  });
+
+  pipeCats.forEach(cat => {
+    if (cat.popProgress < 1) {
+      cat.popProgress = Math.min(1, cat.popProgress + 0.1);
+      const t = 1 - Math.pow(1 - cat.popProgress, 2);
+      cat.y = cat.startY + (cat.baseY - cat.startY) * t;
+    } else {
+      cat.x += cat.speed;
+    }
   });
 
   pipePeople = pipePeople.filter(person => person.x > gameState.cameraX - TILE_SIZE * 4);
+  pipeCats = pipeCats.filter(cat => cat.x > gameState.cameraX - TILE_SIZE * 4);
 }
 
 function drawPipePeople(ctx) {
   pipePeople.forEach(person => drawPipePerson(ctx, person, frameCount));
+}
+
+function drawPipeCats(ctx) {
+  pipeCats.forEach(cat => drawPipeCat(ctx, cat, frameCount));
 }
 
 function spawnHeart(x, y) {
@@ -1386,6 +1536,9 @@ function init() {
   resetSkyDogs();
   pipePeople = [];
   pipePersonCooldown = 0;
+  pipeCats = [];
+  beerMugs = [];
+  beerTimer = 0;
   invincibleTimer = 0;
   bubbleTimer = 0;
   hearts = [];
@@ -1566,12 +1719,15 @@ function gameLoop() {
   updatePhysics();
   updateSkyDogs();
   updatePipePeople();
+  updateBeerMugs();
   drawSkyDogs(ctx);
   level.draw(ctx, frameCount);
   drawPipePeople(ctx);
+  drawPipeCats(ctx);
   drawHearts(ctx, frameCount);
   drawStars(ctx, frameCount);
   drawPlayer(ctx, player.x - gameState.cameraX, player.y, frameCount);
+  drawBeerMugs(ctx);
 
   frameCount++;
   animationId = requestAnimationFrame(gameLoop);
