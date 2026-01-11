@@ -371,6 +371,9 @@ const SKY_DOG_CHANCE = 0.008;
 const SKY_DOG_COOLDOWN_FRAMES = 360;
 const PIPE_PERSON_CHANCE = 0.006;
 const PIPE_PERSON_COOLDOWN_FRAMES = 300;
+const PIPE_PERSON_HIT_COOLDOWN_FRAMES = 1500;
+const PIPE_PERSON_FLOAT_OFFSET = 0.18;
+const PIPE_CAT_FLOAT_OFFSET = 0.02;
 const BEER_MUG_COUNT = 48;
 const BEER_DURATION = 120;
 
@@ -1206,6 +1209,17 @@ function drawPipeCat(ctx, cat, frame) {
   ctx.restore();
 }
 
+function getGroundYAtX(worldX) {
+  if (!level) return null;
+  const tileX = Math.floor(worldX / TILE_SIZE);
+  const column = level.map[tileX];
+  if (!column) return null;
+  for (let y = 0; y < ROWS; y++) {
+    if (column[y] === 1) return y * TILE_SIZE;
+  }
+  return null;
+}
+
 function spawnBeerMugs() {
   beerMugs = [];
   for (let i = 0; i < BEER_MUG_COUNT; i++) {
@@ -1277,11 +1291,11 @@ function spawnPipePerson() {
   const candidate = findPipeSpawnCandidate();
   if (!candidate) return false;
   const personH = TILE_SIZE * 1.4;
-  const baseY = candidate.y * TILE_SIZE - personH + TILE_SIZE * 0.2;
-  const startY = candidate.y * TILE_SIZE + TILE_SIZE * 0.2;
+  const baseY = candidate.y * TILE_SIZE - personH - TILE_SIZE * PIPE_PERSON_FLOAT_OFFSET;
+  const startY = candidate.y * TILE_SIZE - TILE_SIZE * PIPE_PERSON_FLOAT_OFFSET;
   const catH = TILE_SIZE * 0.9;
-  const catBaseY = candidate.y * TILE_SIZE - catH + TILE_SIZE * 0.35;
-  const catStartY = candidate.y * TILE_SIZE + TILE_SIZE * 0.35;
+  const catBaseY = candidate.y * TILE_SIZE - catH + TILE_SIZE * PIPE_CAT_FLOAT_OFFSET;
+  const catStartY = candidate.y * TILE_SIZE + TILE_SIZE * PIPE_CAT_FLOAT_OFFSET;
   pipePeople.push({
     x: candidate.x * TILE_SIZE + TILE_SIZE * 0.1,
     y: startY,
@@ -1319,6 +1333,10 @@ function updatePipePeople() {
       const t = 1 - Math.pow(1 - person.popProgress, 2);
       person.y = person.startY + (person.baseY - person.startY) * t;
     } else {
+      const groundY = getGroundYAtX(person.x + personW * 0.5);
+      if (groundY !== null) {
+        person.y = groundY - personH - TILE_SIZE * PIPE_PERSON_FLOAT_OFFSET;
+      }
       person.x += person.speed;
     }
     if (!person.hit &&
@@ -1328,15 +1346,21 @@ function updatePipePeople() {
         player.y + player.h > person.y) {
       person.hit = true;
       spawnBeerMugs();
+      pipePersonCooldown = PIPE_PERSON_HIT_COOLDOWN_FRAMES;
     }
   });
 
+  const catH = TILE_SIZE * 0.9;
   pipeCats.forEach(cat => {
     if (cat.popProgress < 1) {
       cat.popProgress = Math.min(1, cat.popProgress + 0.1);
       const t = 1 - Math.pow(1 - cat.popProgress, 2);
       cat.y = cat.startY + (cat.baseY - cat.startY) * t;
     } else {
+      const groundY = getGroundYAtX(cat.x + TILE_SIZE * 0.35);
+      if (groundY !== null) {
+        cat.y = groundY - catH + TILE_SIZE * PIPE_CAT_FLOAT_OFFSET;
+      }
       cat.x += cat.speed;
     }
   });
