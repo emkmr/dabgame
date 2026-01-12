@@ -644,30 +644,44 @@ function drawBlock(ctx, x, y, type) {
   } else if (type === 4) { // Skull
     ctx.save();
     ctx.translate(x, y);
-    ctx.fillStyle = '#f9f6f2';
-    const skullRadius = TILE_SIZE * 0.25;
-    ctx.beginPath();
-    ctx.arc(TILE_SIZE / 2, TILE_SIZE * 0.35, skullRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#2f2f2f';
-    const eyeSize = skullRadius * 0.6;
-    const eyeY = TILE_SIZE * 0.3;
-    ctx.fillRect(TILE_SIZE * 0.5 - skullRadius * 0.9, eyeY, eyeSize, eyeSize);
-    ctx.fillRect(TILE_SIZE * 0.5 + skullRadius * 0.3, eyeY, eyeSize, eyeSize);
-    ctx.fillRect((TILE_SIZE - skullRadius * 0.6) / 2, TILE_SIZE * 0.47, skullRadius * 0.6, skullRadius * 0.2);
-    ctx.lineCap = 'round';
-    ctx.lineWidth = TILE_SIZE * 0.07;
-    ctx.strokeStyle = '#f9f6f2';
-    ctx.beginPath();
-    ctx.moveTo(TILE_SIZE * 0.25, TILE_SIZE * 0.75);
-    ctx.lineTo(TILE_SIZE * 0.45, TILE_SIZE * 0.95);
-    ctx.moveTo(TILE_SIZE * 0.45, TILE_SIZE * 0.75);
-    ctx.lineTo(TILE_SIZE * 0.25, TILE_SIZE * 0.95);
-    ctx.moveTo(TILE_SIZE * 0.55, TILE_SIZE * 0.75);
-    ctx.lineTo(TILE_SIZE * 0.75, TILE_SIZE * 0.95);
-    ctx.moveTo(TILE_SIZE * 0.75, TILE_SIZE * 0.75);
-    ctx.lineTo(TILE_SIZE * 0.55, TILE_SIZE * 0.95);
-    ctx.stroke();
+    const unit = TILE_SIZE / 16;
+    const barH = unit * 2;
+    const barW = unit * 12;
+    const barX = unit * 2;
+    const barTopY = unit * 2;
+    const barBottomY = unit * 12;
+
+    // Top / bottom bars
+    ctx.fillStyle = '#f4e9db';
+    ctx.fillRect(barX, barTopY, barW, barH);
+    ctx.fillRect(barX, barBottomY, barW, barH);
+
+    // Spring body (pixel diamond)
+    ctx.fillStyle = '#ff4b2b';
+    const px = unit;
+    const centerX = unit * 8;
+    const centerY = unit * 8;
+    const pixels = [
+      [0, -3], [-1, -2], [1, -2],
+      [-2, -1], [2, -1],
+      [-3, 0], [3, 0],
+      [-2, 1], [2, 1],
+      [-1, 2], [1, 2],
+      [0, 3]
+    ];
+    pixels.forEach(([dx, dy]) => {
+      ctx.fillRect(centerX + dx * px, centerY + dy * px, px, px);
+    });
+
+    // Inner diamond hole
+    ctx.fillStyle = '#f7df7a';
+    const inner = [
+      [0, -1], [-1, 0], [1, 0], [0, 1]
+    ];
+    inner.forEach(([dx, dy]) => {
+      ctx.fillRect(centerX + dx * px, centerY + dy * px, px, px);
+    });
+
     ctx.restore();
   }
 }
