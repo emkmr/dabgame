@@ -1105,21 +1105,26 @@ function drawPipePerson(ctx, person, frame) {
   ctx.save();
   ctx.translate(x, y);
 
-  // Hair (short cut with receding line)
-  ctx.fillStyle = '#3b332d';
-  ctx.fillRect(ps * 2, ps * 0.5, ps * 6, ps * 2);
-  ctx.fillRect(ps * 1.5, ps * 1.5, ps * 1, ps * 2);
-  ctx.fillRect(ps * 7.5, ps * 1.5, ps * 1, ps * 2);
+  // Hair (same framing as the main character)
+  ctx.fillStyle = '#222';
+  ctx.fillRect(ps * 2, ps * 0.6, ps * 6, ps * 4.6);
+  ctx.fillRect(ps * 1.4, ps * 2.2, ps * 1.2, ps * 3.4);
+  ctx.fillRect(ps * 7.4, ps * 2.2, ps * 1.2, ps * 3.4);
+  // Bangs pulled from both sides with a deeper rounded center gap
+  ctx.fillRect(ps * 2.0, ps * 1.2, ps * 2.3, ps * 2.8);
+  ctx.fillRect(ps * 5.7, ps * 1.2, ps * 2.3, ps * 2.8);
+  // carve a rounded dip in the middle
+  ctx.fillRect(ps * 3.6, ps * 1.9, ps * 0.8, ps * 0.8);
+  ctx.fillRect(ps * 4.6, ps * 1.9, ps * 0.8, ps * 0.8);
+  ctx.fillRect(ps * 4.0, ps * 2.6, ps * 1.2, ps * 0.8);
 
   // Face
   ctx.fillStyle = '#FCD';
   ctx.fillRect(ps * 2, ps * 2.5, ps * 6, ps * 4.2);
 
-  // Nose + moustache
-  ctx.fillStyle = '#d7a27c';
-  ctx.fillRect(ps * 4.6, ps * 4.4, ps * 0.8, ps * 0.8);
-  ctx.fillStyle = '#3b332d';
-  ctx.fillRect(ps * 3.6, ps * 5.3, ps * 3, ps * 0.6);
+  // Mouth
+  ctx.fillStyle = '#c93a6a';
+  ctx.fillRect(ps * 4.1, ps * 5.8, ps * 1.8, ps * 0.6);
 
   // Shirt (white)
   ctx.fillStyle = '#ffffff';
