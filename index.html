@@ -932,7 +932,7 @@ class Level {
 }
 
 let player = {
-  x: 0, y: 0, vx: 0, vy: 0, w: 0, h: 0, grounded: false, dead: false
+  x: 0, y: 0, vx: 0, vy: 0, w: 0, h: 0, grounded: false, dead: false, knockback: 0
 };
 
 let level;
@@ -1006,8 +1006,9 @@ function handleSkullAt(tileX, tileY, prevBottom) {
     gameState.score += SKULL_SCORE;
     document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
     player.vy = JUMP_FORCE * SKULL_JUMP_MULTIPLIER;
-  } else if (!isInvincible()) {
-    die();
+  } else {
+    // Side hits on the jump pad should not kill the player.
+    player.knockback = Math.max(player.knockback, 20);
   }
 }
 
@@ -1605,6 +1606,7 @@ function init() {
   player.vx = MOVE_SPEED;
   player.vy = 0;
   player.dead = false;
+  player.knockback = 0;
 
   level = new Level();
   resetSkyDogs();
@@ -1642,7 +1644,12 @@ function updatePhysics() {
   // マップ更新: 画面外も余裕を持って生成
   level.updateMap(player.x + view.w);
 
-  player.vx = MOVE_SPEED;
+  if (player.knockback > 0) {
+    player.vx = -MOVE_SPEED * 0.6;
+    player.knockback--;
+  } else {
+    player.vx = MOVE_SPEED;
+  }
 
   if (jumpPressed && player.grounded) {
     player.vy = JUMP_FORCE;
