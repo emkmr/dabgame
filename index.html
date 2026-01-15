@@ -367,6 +367,7 @@ const INVINCIBLE_DURATION = 480;
 const BUBBLE_DURATION = 300;
 const HEART_SCORE = 20;
 const STAR_SCORE = 20;
+const BOTTLE_SCORE = 20;
 const SKY_DOG_CHANCE = 0.008;
 const SKY_DOG_COOLDOWN_FRAMES = 360;
 const PIPE_PERSON_CHANCE = 0.006;
@@ -950,6 +951,7 @@ let invincibleTimer = 0;
 let bubbleTimer = 0;
 let hearts = [];
 let stars = [];
+let bottles = [];
 
 function collectScissorAt(tileX, tileY) {
   if (!level) return false;
@@ -984,12 +986,16 @@ function handleQuestionBlock(tileX, tileY) {
   column[tileY] = 6;
   const itemX = tileX * TILE_SIZE + TILE_SIZE * 0.075;
   const itemY = tileY * TILE_SIZE - TILE_SIZE * 0.65;
-  if (Math.random() < 0.5) {
+  const roll = Math.random();
+  if (roll < 0.375) {
     spawnHeart(itemX, itemY);
     gameState.score += HEART_SCORE;
-  } else {
+  } else if (roll < 0.75) {
     spawnStar(itemX, itemY);
     gameState.score += STAR_SCORE;
+  } else {
+    spawnBottle(itemX, itemY);
+    gameState.score += BOTTLE_SCORE;
   }
   document.getElementById('score').innerText = `SCORE: ${gameState.score}`;
 }
@@ -1519,6 +1525,49 @@ function updateStars() {
   stars = stars.filter(star => !star.collected && star.x > gameState.cameraX - TILE_SIZE * 2);
 }
 
+function spawnBottle(x, y) {
+  bottles.push({
+    x,
+    y,
+    vy: -TILE_SIZE * 0.18,
+    popTimer: 18,
+    bobOffset: Math.random() * Math.PI * 2,
+    collected: false
+  });
+}
+
+function updateBottles() {
+  const playerWorldX = player.x;
+  const playerWorldY = player.y;
+  const playerWorldW = player.w;
+  const playerWorldH = player.h;
+
+  bottles.forEach(bottle => {
+    if (bottle.popTimer > 0) {
+      bottle.y += bottle.vy;
+      bottle.popTimer--;
+      if (bottle.popTimer === 0) {
+        bottle.vy = 0;
+      }
+    }
+
+    if (bottle.collected) return;
+    const size = TILE_SIZE * 0.85;
+    const bx = bottle.x;
+    const by = bottle.y;
+    if (
+      playerWorldX < bx + size &&
+      playerWorldX + playerWorldW > bx &&
+      playerWorldY < by + size &&
+      playerWorldY + playerWorldH > by
+    ) {
+      bottle.collected = true;
+    }
+  });
+
+  bottles = bottles.filter(bottle => !bottle.collected && bottle.x > gameState.cameraX - TILE_SIZE * 2);
+}
+
 function drawHeart(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -1560,6 +1609,56 @@ function drawStar(ctx, x, y, size, frame) {
   ctx.restore();
 }
 
+function drawBottle(ctx, x, y, size) {
+  const bodyW = size * 0.62;
+  const bodyH = size * 0.76;
+  const neckW = bodyW * 0.42;
+  const neckH = size * 0.18;
+  const pumpH = size * 0.16;
+
+  const roundedRect = (rx, ry, rw, rh, rr) => {
+    const r = Math.min(rr, rw * 0.5, rh * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(rx + r, ry);
+    ctx.arcTo(rx + rw, ry, rx + rw, ry + rh, r);
+    ctx.arcTo(rx + rw, ry + rh, rx, ry + rh, r);
+    ctx.arcTo(rx, ry + rh, rx, ry, r);
+    ctx.arcTo(rx, ry, rx + rw, ry, r);
+    ctx.closePath();
+  };
+
+  ctx.save();
+  ctx.translate(x + size * 0.5, y + size * 0.12);
+
+  ctx.fillStyle = '#f2f2f2';
+  ctx.strokeStyle = '#cfcfcf';
+  ctx.lineWidth = Math.max(1, size * 0.05);
+
+  // Pump head
+  roundedRect(-neckW * 0.8, -pumpH, neckW * 1.6, pumpH * 0.6, size * 0.08);
+  ctx.fill();
+  ctx.stroke();
+  roundedRect(neckW * 0.4, -pumpH * 0.75, neckW * 0.9, pumpH * 0.35, size * 0.08);
+  ctx.fill();
+  ctx.stroke();
+
+  // Neck
+  roundedRect(-neckW * 0.5, 0, neckW, neckH, size * 0.08);
+  ctx.fill();
+  ctx.stroke();
+
+  // Body
+  ctx.fillStyle = '#e2e2e2';
+  roundedRect(-bodyW * 0.5, neckH, bodyW, bodyH, size * 0.12);
+  ctx.fill();
+  ctx.stroke();
+
+  // Label mark
+  drawSinceMark(ctx, 0, neckH + bodyH * 0.55, bodyW * 0.9);
+
+  ctx.restore();
+}
+
 function drawHearts(ctx, frame) {
   hearts.forEach(heart => {
     const bob = Math.sin(frame * 0.08 + heart.bobOffset) * TILE_SIZE * 0.03;
@@ -1574,6 +1673,43 @@ function drawStars(ctx, frame) {
     const size = TILE_SIZE * 0.85;
     drawStar(ctx, star.x - gameState.cameraX, star.y + bob, size, frame);
   });
+}
+
+function drawBottles(ctx, frame) {
+  bottles.forEach(bottle => {
+    const bob = Math.sin(frame * 0.08 + bottle.bobOffset) * TILE_SIZE * 0.03;
+    const size = TILE_SIZE * 0.85;
+    drawBottle(ctx, bottle.x - gameState.cameraX, bottle.y + bob, size);
+  });
+}
+
+function drawSinceMark(ctx, cx, cy, size) {
+  const text = 'SINCE';
+  const fontSize = Math.max(8, Math.floor(size * 0.24));
+  const spacing = size * 0.08;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(70, 70, 70, 0.7)';
+  ctx.font = `700 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  let total = 0;
+  const widths = text.split('').map(letter => {
+    const w = ctx.measureText(letter).width;
+    total += w;
+    return w;
+  });
+  total += spacing * (text.length - 1);
+
+  let x = cx - total / 2;
+  text.split('').forEach((letter, i) => {
+    const w = widths[i];
+    ctx.fillText(letter, x + w / 2, cy);
+    x += w + spacing;
+  });
+
+  ctx.restore();
 }
 
 function setOverlayState(state, scoreValue = 0) {
@@ -1625,6 +1761,7 @@ function init() {
   bubbleTimer = 0;
   hearts = [];
   stars = [];
+  bottles = [];
   gameState.score = 0;
   gameState.distance = 0;
   gameState.cameraX = 0;
@@ -1742,6 +1879,7 @@ function updatePhysics() {
   collectScissorsInBounds();
   updateHearts();
   updateStars();
+  updateBottles();
 
   // 落下死: マップ底の少し下まで落ちたら死亡
   const abyssY = ROWS * TILE_SIZE + TILE_SIZE * 2;
@@ -1813,6 +1951,7 @@ function gameLoop() {
   drawPipeCats(ctx);
   drawHearts(ctx, frameCount);
   drawStars(ctx, frameCount);
+  drawBottles(ctx, frameCount);
   drawPlayer(ctx, player.x - gameState.cameraX, player.y, frameCount);
   drawBeerMugs(ctx);
 
