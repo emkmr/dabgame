@@ -373,7 +373,7 @@ const BOTTLE_SCORE = 20;
 const GHOST_SCORE = 20;
 const SKY_DOG_CHANCE = 0.012;
 const SKY_DOG_COOLDOWN_FRAMES = 360;
-const PIPE_PERSON_CHANCE = 0.01;
+const PIPE_PERSON_CHANCE = 0.006;
 const PIPE_PERSON_COOLDOWN_FRAMES = 300;
 const PIPE_PERSON_HIT_COOLDOWN_FRAMES = 1500;
 const PIPE_PERSON_FLOAT_OFFSET = 0.18;
@@ -889,7 +889,7 @@ class Level {
       this.map[x][groundY - 3] = 5;
       this.questionCooldown = 2;
       return;
-    } else if (Math.random() < 0.08) {
+    } else if (Math.random() < 0.05) {
       // 地上の障害物
       if (this.questionCooldown === 0) {
         this.map[x][groundY-1] = Math.random() > 0.5 ? 3 : 2;
@@ -1609,8 +1609,13 @@ function spawnGhost(x, y) {
   ghosts.push({
     x,
     y,
-    vy: -TILE_SIZE * 0.18,
-    popTimer: 18,
+    baseX: x,
+    riseSpeed: -TILE_SIZE * 0.04,
+    swayAmplitude: TILE_SIZE * 0.8,
+    swaySpeed: 0.08,
+    phase: Math.random() * Math.PI * 2,
+    vy: -TILE_SIZE * 0.12,
+    popTimer: 14,
     bobOffset: Math.random() * Math.PI * 2,
     collected: false
   });
@@ -1623,12 +1628,13 @@ function updateGhosts() {
   const playerWorldH = player.h;
 
   ghosts.forEach(ghost => {
+    ghost.y += ghost.riseSpeed;
+    ghost.phase += ghost.swaySpeed;
+    ghost.x = ghost.baseX + Math.sin(ghost.phase) * ghost.swayAmplitude;
+
     if (ghost.popTimer > 0) {
       ghost.y += ghost.vy;
       ghost.popTimer--;
-      if (ghost.popTimer === 0) {
-        ghost.vy = 0;
-      }
     }
 
     if (ghost.collected) return;
@@ -1645,7 +1651,7 @@ function updateGhosts() {
     }
   });
 
-  ghosts = ghosts.filter(ghost => !ghost.collected && ghost.x > gameState.cameraX - TILE_SIZE * 2);
+  ghosts = ghosts.filter(ghost => !ghost.collected && ghost.baseX > gameState.cameraX - TILE_SIZE * 2);
 }
 
 function drawHeart(ctx, x, y, size) {
