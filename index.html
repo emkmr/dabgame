@@ -1151,7 +1151,7 @@ function spawnSkyDog() {
   }
   lastSkyDogKind = kind;
   const sizeBase = Math.max(18, TILE_SIZE * 0.7);
-  const size = kind === 'pixel' ? sizeBase * 1.12 : sizeBase * 0.9;
+  const size = kind === 'pixel' ? sizeBase * 1.12 : sizeBase * 0.8;
   const { min, max } = SKY_DOG_CONFIG.yRange();
   const y = min + Math.random() * (max - min);
   const speed = SKY_DOG_CONFIG.baseSpeed() * (0.9 + Math.random() * 0.3);
@@ -1166,7 +1166,7 @@ function spawnSkyDog() {
   skyDogs.push(leader);
   if (kind === 'cocker') {
     skyDogs.push({
-      x: leader.x + size * 1.7,
+      x: leader.x + size * 2.1,
       y: leader.y + size * 0.06,
       size,
       kind,
