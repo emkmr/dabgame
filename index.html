@@ -774,6 +774,7 @@ function drawSkyDog(ctx, dog, frame) {
   const bodyW = 16 * px;
   const bodyH = 9 * px;
   const step = Math.sin((dog.stepOffset ?? 0) + frame * 0.5) * px * 2;
+  const isCocker = dog.kind === 'cocker';
 
   const colors = {
     outline: '#0b0b0b',
@@ -783,6 +784,14 @@ function drawSkyDog(ctx, dog, frame) {
     muzzle: '#2b221b',
     highlight: '#e4b46a'
   };
+
+  if (isCocker) {
+    colors.fur = '#1f1f1f';
+    colors.furDark = '#0e0e0e';
+    colors.ear = '#131313';
+    colors.muzzle = '#2c2c2c';
+    colors.highlight = '#2b2b2b';
+  }
 
   const p = (x, y, w, h, color) => {
     ctx.fillStyle = color;
@@ -808,6 +817,12 @@ function drawSkyDog(ctx, dog, frame) {
   // Ear + cheek
   p(12, 0, 2, 2, colors.ear);
   p(12, 2, 1, 1, colors.outline);
+  if (isCocker) {
+    p(10, 3, 3, 6, colors.ear);
+    p(9, 4, 1, 4, colors.ear);
+    p(11, 8, 2, 1, colors.ear);
+    p(10, 9, 1, 1, colors.ear);
+  }
 
   // Muzzle + nose
   p(14, 3, 3, 2, colors.muzzle);
@@ -815,18 +830,43 @@ function drawSkyDog(ctx, dog, frame) {
 
   // Eye
   p(13, 2, 1, 1, colors.outline);
+  if (isCocker) {
+    p(10, 1, 6, 2, '#2b2b2b');
+    p(11, 2, 1, 1, '#57b8f0');
+    p(15, 2, 1, 1, '#57b8f0');
+    p(9, 2, 1, 1, '#2b2b2b');
+  }
+
+  if (!dog.isFollower) {
+    // Halo
+    ctx.save();
+    ctx.strokeStyle = '#f5d742';
+    ctx.lineWidth = Math.max(1, px * 0.9);
+    ctx.beginPath();
+    ctx.ellipse(13.5 * px, -2.6 * px, 3.4 * px, 1.3 * px, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // Tail curl
   const tailWag = Math.sin((dog.stepOffset ?? 0) + frame * 0.6) > 0 ? 1 : 0;
   p(0 + tailWag, 2, 3, 2, colors.furDark);
   p(-1 + tailWag, 2, 1, 1, colors.furDark);
   p(1 + tailWag, 1, 1, 1, colors.furDark);
+  if (isCocker) {
+    p(0 + tailWag, 4, 2, 1, colors.furDark);
+    p(2 + tailWag, 3, 1, 1, colors.furDark);
+  }
 
   // Legs (pixel + step)
   p(4, 8 + (step > 0 ? 1 : 0), 2, 3, colors.furDark);
   p(11, 8 + (step < 0 ? 1 : 0), 2, 3, colors.furDark);
   p(4, 11 + (step > 0 ? 1 : 0), 2, 1, colors.furDark);
   p(11, 11 + (step < 0 ? 1 : 0), 2, 1, colors.furDark);
+  if (isCocker) {
+    p(3, 8 + (step > 0 ? 1 : 0), 1, 2, colors.furDark);
+    p(13, 8 + (step < 0 ? 1 : 0), 1, 2, colors.furDark);
+  }
 
   // Collar accent
   p(11, 4, 4, 1, '#f5d742');
@@ -972,6 +1012,7 @@ let animationId;
 let frameCount = 0;
 let skyDogs = [];
 let skyDogCooldown = 0;
+let lastSkyDogKind = null;
 let pipePeople = [];
 let pipePersonCooldown = 0;
 let pipeCats = [];
@@ -1099,20 +1140,41 @@ function isInvincible() {
 
 function resetSkyDogs() {
   skyDogs = [];
-  skyDogCooldown = SKY_DOG_COOLDOWN_FRAMES;
+  skyDogCooldown = 0;
+  lastSkyDogKind = null;
 }
 
 function spawnSkyDog() {
-  const size = Math.max(18, TILE_SIZE * 0.7);
+  let kind = Math.random() < 0.5 ? 'cocker' : 'pixel';
+  if (lastSkyDogKind && kind === lastSkyDogKind) {
+    kind = lastSkyDogKind === 'cocker' ? 'pixel' : 'cocker';
+  }
+  lastSkyDogKind = kind;
+  const sizeBase = Math.max(18, TILE_SIZE * 0.7);
+  const size = kind === 'pixel' ? sizeBase * 1.12 : sizeBase;
   const { min, max } = SKY_DOG_CONFIG.yRange();
   const y = min + Math.random() * (max - min);
-  skyDogs.push({
+  const speed = SKY_DOG_CONFIG.baseSpeed() * (0.9 + Math.random() * 0.3);
+  const leader = {
     x: view.w + size * 2,
     y,
     size,
-    speed: SKY_DOG_CONFIG.baseSpeed() * (0.9 + Math.random() * 0.3),
+    kind,
+    speed,
     stepOffset: Math.random() * Math.PI * 2
-  });
+  };
+  skyDogs.push(leader);
+  if (kind === 'cocker') {
+    skyDogs.push({
+      x: leader.x + size * 1.7,
+      y: leader.y + size * 0.06,
+      size,
+      kind,
+      speed,
+      stepOffset: leader.stepOffset + Math.PI * 0.4,
+      isFollower: true
+    });
+  }
 }
 
 function updateSkyDogs() {
@@ -1136,8 +1198,8 @@ function updateSkyDogs() {
     dog.x -= dog.speed;
     dog.stepOffset = (dog.stepOffset ?? 0) + 0.1;
     if (dog.collected) return;
-    const dogW = dog.size * 1.6;
-    const dogH = dog.size * 1.2;
+    const dogW = dog.size * (dog.kind === 'cocker' ? 1.7 : 1.6);
+    const dogH = dog.size * (dog.kind === 'cocker' ? 1.3 : 1.2);
     if (
       playerScreenX < dog.x + dogW &&
       playerScreenX + playerScreenW > dog.x &&
