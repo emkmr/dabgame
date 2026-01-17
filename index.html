@@ -495,6 +495,21 @@ function drawInvincibleStars(ctx, w, h, frame) {
     drawStar(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame);
   }
 
+  const outerMostCount = 12;
+  const outerMostOrbit = baseOrbit * 1.62;
+  for (let m = 0; m < outerMostCount; m++) {
+    const t = m / outerMostCount;
+    const angle = t * Math.PI * 2 + time * 0.7 + Math.sin(time + m) * 0.15;
+    const wobble = Math.sin(time * 1.2 + m) * w * 0.12;
+    const orbit = outerMostOrbit + wobble;
+    const size = Math.max(5, w * (0.07 + (m % 4) * 0.01));
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.62;
+    const pulse = 1 + Math.sin(time * 1.4 + m) * 0.05;
+
+    drawStar(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame);
+  }
+
   for (let j = 0; j < 14; j++) {
     const angle = time * 1.8 + j * 0.6;
     const orbit = w * 0.38 + Math.sin(time * 2 + j) * w * 0.06;
