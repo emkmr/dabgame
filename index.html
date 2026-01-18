@@ -552,6 +552,114 @@ function drawInvincibleStars(ctx, w, h, frame) {
   ctx.restore();
 }
 
+function drawInvincibleCandies(ctx, w, h, frame) {
+  const starCount = 26;
+  const baseOrbit = Math.min(w, h) * 1.05;
+  const time = frame * 0.035;
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+
+  for (let i = 0; i < starCount; i++) {
+    const t = i / starCount;
+    const angle = t * Math.PI * 2 + time * 1.15 + Math.sin(time + i) * 0.2;
+    const wobble = Math.sin(time * 1.6 + i) * w * 0.08;
+    const orbit = baseOrbit + wobble;
+    const size = Math.max(6, w * (0.07 + (i % 6) * 0.012));
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.55;
+    const pulse = 1 + Math.sin(time * 2 + i) * 0.08;
+
+    drawCandyEmoji(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame, i * 0.6);
+  }
+
+  const outerCount = 18;
+  const outerOrbit = baseOrbit * 1.35;
+  for (let k = 0; k < outerCount; k++) {
+    const t = k / outerCount;
+    const angle = t * Math.PI * 2 - time * 0.9 + Math.cos(time + k) * 0.2;
+    const wobble = Math.cos(time * 1.4 + k) * w * 0.1;
+    const orbit = outerOrbit + wobble;
+    const size = Math.max(6, w * (0.08 + (k % 5) * 0.012));
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.58;
+    const pulse = 1 + Math.sin(time * 1.6 + k) * 0.06;
+
+    drawCandyEmoji(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame, k * 0.6);
+  }
+
+  const outerMostCount = 12;
+  const outerMostOrbit = baseOrbit * 1.62;
+  for (let m = 0; m < outerMostCount; m++) {
+    const t = m / outerMostCount;
+    const angle = t * Math.PI * 2 + time * 0.7 + Math.sin(time + m) * 0.15;
+    const wobble = Math.sin(time * 1.2 + m) * w * 0.12;
+    const orbit = outerMostOrbit + wobble;
+    const size = Math.max(5, w * (0.07 + (m % 4) * 0.01));
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.62;
+    const pulse = 1 + Math.sin(time * 1.4 + m) * 0.05;
+
+    drawCandyEmoji(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame, m * 0.6);
+  }
+
+  const outerPlusCount = 10;
+  const outerPlusOrbit = baseOrbit * 1.85;
+  for (let n = 0; n < outerPlusCount; n++) {
+    const t = n / outerPlusCount;
+    const angle = t * Math.PI * 2 - time * 0.8 + Math.cos(time + n) * 0.18;
+    const wobble = Math.cos(time * 1.1 + n) * w * 0.14;
+    const orbit = outerPlusOrbit + wobble;
+    const size = Math.max(5, w * (0.065 + (n % 3) * 0.01));
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.64;
+    const pulse = 1 + Math.sin(time * 1.3 + n) * 0.05;
+
+    drawCandyEmoji(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame, n * 0.6);
+  }
+
+  const outerFarCount = 8;
+  const outerFarOrbit = baseOrbit * 2.05;
+  for (let q = 0; q < outerFarCount; q++) {
+    const t = q / outerFarCount;
+    const angle = t * Math.PI * 2 + time * 0.6 + Math.sin(time + q) * 0.16;
+    const wobble = Math.sin(time * 1.05 + q) * w * 0.16;
+    const orbit = outerFarOrbit + wobble;
+    const size = Math.max(4, w * (0.055 + (q % 3) * 0.008));
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.66;
+    const pulse = 1 + Math.sin(time * 1.2 + q) * 0.05;
+
+    drawCandyEmoji(ctx, sx - size * 0.5, sy - size * 0.5, size * pulse, frame, q * 0.6);
+  }
+
+  for (let j = 0; j < 14; j++) {
+    const angle = time * 1.8 + j * 0.6;
+    const orbit = w * 0.38 + Math.sin(time * 2 + j) * w * 0.06;
+    const size = Math.max(4, w * 0.045);
+    const sx = w / 2 + Math.cos(angle) * orbit;
+    const sy = h * 0.55 + Math.sin(angle) * orbit * 0.45;
+    drawCandyEmoji(ctx, sx - size * 0.5, sy - size * 0.5, size, frame, j * 0.6);
+  }
+
+  ctx.restore();
+}
+
+function drawCandyEmoji(ctx, x, y, size, frame, phase) {
+  const cx = x + size * 0.5;
+  const cy = y + size * 0.5;
+  const twist = frame * 0.06 + phase;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(twist);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${Math.max(10, size * 0.9)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+  ctx.fillText('🍬', 0, 0);
+  ctx.restore();
+}
+
 function drawPlayer(ctx, x, y, frame) {
   const w = TILE_SIZE * 0.9;
   const h = TILE_SIZE * 1.5;
@@ -562,7 +670,11 @@ function drawPlayer(ctx, x, y, frame) {
   const ps = w / 12;
 
   if (isInvincible() && bubbleTimer > 0) {
-    drawInvincibleStars(ctx, w, h, frame);
+    if (invincibleEffect === 'candy') {
+      drawInvincibleCandies(ctx, w, h, frame);
+    } else {
+      drawInvincibleStars(ctx, w, h, frame);
+    }
   }
 
   const c = {
@@ -1097,6 +1209,7 @@ let beerTimer = 0;
 let beerFoam = [];
 let invincibleTimer = 0;
 let bubbleTimer = 0;
+let invincibleEffect = 'star';
 let hearts = [];
 let stars = [];
 let bottles = [];
@@ -1205,9 +1318,10 @@ function handleSkullsInBounds(prevBottom) {
   }
 }
 
-function activateInvincibility() {
+function activateInvincibility(effect = 'star') {
   invincibleTimer = INVINCIBLE_DURATION;
   bubbleTimer = BUBBLE_DURATION;
+  invincibleEffect = effect;
 }
 
 function isInvincible() {
@@ -1282,7 +1396,7 @@ function updateSkyDogs() {
       playerScreenY < dog.y + dogH &&
       playerScreenY + playerScreenH > dog.y
     ) {
-      activateInvincibility();
+      activateInvincibility(dog.kind === 'cocker' ? 'candy' : 'star');
       dog.collected = true;
     }
   });
