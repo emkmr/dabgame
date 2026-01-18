@@ -718,26 +718,50 @@ function drawBlock(ctx, x, y, type, tileX, tileY) {
 function drawEnemy(ctx, x, y, frame) {
   const w = TILE_SIZE;
   const h = TILE_SIZE;
+  const capBase = '#A79CF8';
+  const capShadow = '#857CC6';
+  const capHighlight = '#B4A8FF';
+  const dotBase = '#9FFCA3';
+  const dotShadow = '#7FC982';
+  const dotHighlight = '#ABFFB0';
+  const stemColor = '#FFF1D6';
 
-  ctx.fillStyle = '#8B4513';
-
+  ctx.fillStyle = capBase;
   ctx.beginPath();
-  ctx.arc(x + w/2, y + h/2, w/2, 0, Math.PI, true);
+  ctx.arc(x + w / 2, y + h / 2, w / 2, 0, Math.PI, true);
   ctx.fill();
 
-  ctx.fillStyle = '#CD853F';
-  ctx.fillRect(x + w*0.3, y + h/2, w*0.4, h/2);
+  ctx.fillStyle = capHighlight;
+  ctx.beginPath();
+  ctx.ellipse(x + w * 0.38, y + h * 0.38, w * 0.18, h * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const drawDot = (cx, cy, r) => {
+    ctx.fillStyle = dotBase;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  drawDot(x + w * 0.2, y + h * 0.34, w * 0.065);
+  drawDot(x + w * 0.42, y + h * 0.26, w * 0.075);
+  drawDot(x + w * 0.72, y + h * 0.32, w * 0.065);
+  drawDot(x + w * 0.32, y + h * 0.46, w * 0.06);
+  drawDot(x + w * 0.58, y + h * 0.44, w * 0.06);
+
+  ctx.fillStyle = stemColor;
+  ctx.fillRect(x + w * 0.32, y + h / 2, w * 0.36, h * 0.5);
 
   ctx.fillStyle = '#FFF';
   ctx.beginPath();
-  ctx.arc(x + w*0.4, y + h*0.6, w*0.1, 0, Math.PI*2);
-  ctx.arc(x + w*0.6, y + h*0.6, w*0.1, 0, Math.PI*2);
+  ctx.arc(x + w * 0.4, y + h * 0.6, w * 0.1, 0, Math.PI * 2);
+  ctx.arc(x + w * 0.6, y + h * 0.6, w * 0.1, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = '#000';
   ctx.beginPath();
-  ctx.arc(x + w*0.42, y + h*0.6, w*0.04, 0, Math.PI*2);
-  ctx.arc(x + w*0.62, y + h*0.6, w*0.04, 0, Math.PI*2);
+  ctx.arc(x + w * 0.42, y + h * 0.6, w * 0.04, 0, Math.PI * 2);
+  ctx.arc(x + w * 0.62, y + h * 0.6, w * 0.04, 0, Math.PI * 2);
   ctx.fill();
 
   if (Math.floor(frame / 10) % 2 === 0) {
