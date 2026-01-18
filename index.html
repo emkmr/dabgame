@@ -1880,7 +1880,9 @@ function spawnGhost(x, y) {
     x,
     y,
     baseX: x,
+    baseY: y,
     riseSpeed: -TILE_SIZE * 0.04,
+    driftSpeed: TILE_SIZE * 0.08,
     swayAmplitude: TILE_SIZE * 0.8,
     swaySpeed: 0.08,
     phase: Math.random() * Math.PI * 2,
@@ -1899,6 +1901,7 @@ function updateGhosts() {
 
   ghosts.forEach(ghost => {
     ghost.y += ghost.riseSpeed;
+    ghost.baseX += ghost.driftSpeed;
     ghost.phase += ghost.swaySpeed;
     ghost.x = ghost.baseX + Math.sin(ghost.phase) * ghost.swayAmplitude;
 
@@ -1921,7 +1924,9 @@ function updateGhosts() {
     }
   });
 
-  ghosts = ghosts.filter(ghost => !ghost.collected && ghost.baseX > gameState.cameraX - TILE_SIZE * 2);
+  const vanishY = view.h * -0.2;
+  const vanishX = gameState.cameraX + view.w * 1.6;
+  ghosts = ghosts.filter(ghost => !ghost.collected && ghost.baseX > gameState.cameraX - TILE_SIZE * 2 && ghost.baseX < vanishX && ghost.y > vanishY);
 }
 
 function drawHeart(ctx, x, y, size) {
