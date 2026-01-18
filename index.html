@@ -1141,7 +1141,14 @@ class Level {
         }
       }
     } else if (Math.random() < 0.05) {
-      this.map[x][groundY-1] = 4;
+      const prevCol = this.map[x - 1];
+      const prevPrevCol = this.map[x - 2];
+      const stackedQs =
+        prevCol?.[groundY - 3] === 5 &&
+        prevPrevCol?.[groundY - 3] === 5;
+      if (!stackedQs) {
+        this.map[x][groundY-1] = 4;
+      }
     } else if (Math.random() < 0.05) {
       // ボトル（はさみと同じ収集系）
       this.map[x][groundY-2] = 7;
