@@ -1063,6 +1063,7 @@ class Level {
     this.enemies = [];
     this.generatedX = 0;
     this.groundY = 10;
+    this.prevGroundY = 10;
     this.questionCooldown = 0;
 
     // 初回生成範囲を広く取る（画面幅の3倍）
@@ -1109,6 +1110,7 @@ class Level {
     }
 
     // 地面の高さをたまに変える
+    this.prevGroundY = this.groundY;
     if (Math.random() < 0.05) {
       this.groundY += Math.random() > 0.5 ? 1 : -1;
       this.groundY = Math.max(7, Math.min(13, this.groundY));
@@ -1118,10 +1120,10 @@ class Level {
     for(let y=this.groundY; y<ROWS; y++) this.map[x][y] = 1;
 
     // オブジェクト配置
-    this.generateObjects(x, this.groundY);
+    this.generateObjects(x, this.groundY, this.prevGroundY);
   }
 
-  generateObjects(x, groundY) {
+  generateObjects(x, groundY, prevGroundY) {
     if (Math.random() < 0.06) {
       // ?ブロック
       this.map[x][groundY - 3] = 5;
@@ -1146,7 +1148,8 @@ class Level {
       const stackedQs =
         prevCol?.[groundY - 3] === 5 &&
         prevPrevCol?.[groundY - 3] === 5;
-      if (!stackedQs) {
+      const isStepUp = groundY < prevGroundY;
+      if (!stackedQs && !isStepUp) {
         this.map[x][groundY-1] = 4;
       }
     } else if (Math.random() < 0.05) {
