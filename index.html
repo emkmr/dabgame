@@ -1955,6 +1955,7 @@ function spawnUmbrella(x, y) {
     vy: -TILE_SIZE * 0.18,
     popTimer: 18,
     bobOffset: Math.random() * Math.PI * 2,
+    scale: 1.1,
     collected: false
   });
   rainTimer = Math.max(rainTimer, 180);
@@ -2237,13 +2238,13 @@ function drawGhosts(ctx, frame) {
 function drawUmbrellas(ctx, frame) {
   umbrellas.forEach(umbrella => {
     const bob = Math.sin(frame * 0.08 + umbrella.bobOffset) * TILE_SIZE * 0.03;
-    const size = TILE_SIZE * 0.85;
+    const size = TILE_SIZE * 0.85 * (umbrella.scale ?? 1);
     drawUmbrella(ctx, umbrella.x - gameState.cameraX, umbrella.y + bob, size);
   });
 }
 
 function drawRain(ctx) {
-  const drops = 200;
+  const drops = 110;
   const speed = 0.6 + MOVE_SPEED * 0.25;
   ctx.save();
   ctx.strokeStyle = 'rgba(120, 170, 220, 0.45)';
