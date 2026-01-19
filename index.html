@@ -1291,10 +1291,10 @@ function handleQuestionBlock(tileX, tileY) {
   if (roll < 0.3) {
     spawnHeart(itemX, itemY);
     gameState.score += HEART_SCORE;
-  } else if (roll < 0.6) {
+  } else if (roll < 0.5) {
     spawnStar(itemX, itemY);
     gameState.score += STAR_SCORE;
-  } else if (roll < 0.9) {
+  } else if (roll < 0.8) {
     spawnGhost(itemX, itemY);
     gameState.score += GHOST_SCORE;
   } else {
