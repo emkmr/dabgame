@@ -1160,13 +1160,16 @@ class Level {
       this.map[x][groundY-4] = 2;
     }
 
-    // 敵
+    // 敵（他オブジェクトと被らないように）
     if (Math.random() < 0.05) {
-      this.enemies.push({
-        x: x * TILE_SIZE,
-        y: (groundY - 1) * TILE_SIZE,
-        active: true
-      });
+      const enemyY = groundY - 1;
+      if (this.map[x][enemyY] === 0) {
+        this.enemies.push({
+          x: x * TILE_SIZE,
+          y: enemyY * TILE_SIZE,
+          active: true
+        });
+      }
     }
   }
 
